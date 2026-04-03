@@ -1,0 +1,160 @@
+package com.khabarexpress.buyer.presentation.auth.login
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.khabarexpress.buyer.domain.model.User
+import com.khabarexpress.buyer.domain.repository.AuthRepository
+import com.khabarexpress.buyer.util.Constants
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/**
+ * ViewModel for Login screen
+ * Handles user authentication via email/password or phone/OTP
+ */
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
+    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    init {
+        checkAuthStatus()
+    }
+
+    /**
+     * Login with email and password
+     */
+    fun login(email: String, password: String) {
+        if (email.isBlank() || password.isBlank()) {
+            _uiState.value = LoginUiState.Error("Email and password cannot be empty")
+            return
+        }
+
+        if (!isValidEmail(email)) {
+            _uiState.value = LoginUiState.Error("Invalid email format")
+            return
+        }
+
+        if (password.length < Constants.MIN_PASSWORD_LENGTH) {
+            _uiState.value = LoginUiState.Error("Password must be at least ${Constants.MIN_PASSWORD_LENGTH} characters")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = LoginUiState.Loading
+            authRepository.login(email, password)
+                .onSuccess { user ->
+                    _uiState.value = LoginUiState.Success(user)
+                }
+                .onFailure { error ->
+                    _uiState.value = LoginUiState.Error(
+                        error.message ?: "Login failed. Please try again."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Login with phone number and OTP
+     */
+    fun loginWithPhone(phone: String, otp: String) {
+        if (phone.isBlank() || otp.isBlank()) {
+            _uiState.value = LoginUiState.Error("Phone number and OTP cannot be empty")
+            return
+        }
+
+        if (!isValidPhone(phone)) {
+            _uiState.value = LoginUiState.Error("Invalid phone number format")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = LoginUiState.Loading
+            authRepository.loginWithPhone(phone, otp)
+                .onSuccess { user ->
+                    _uiState.value = LoginUiState.Success(user)
+                }
+                .onFailure { error ->
+                    _uiState.value = LoginUiState.Error(
+                        error.message ?: "Phone login failed. Please try again."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Send OTP to phone number
+     */
+    fun sendOtp(phone: String) {
+        if (phone.isBlank()) {
+            _uiState.value = LoginUiState.Error("Phone number cannot be empty")
+            return
+        }
+
+        if (!isValidPhone(phone)) {
+            _uiState.value = LoginUiState.Error("Invalid phone number format")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = LoginUiState.Loading
+            authRepository.sendOtp(phone)
+                .onSuccess {
+                    _uiState.value = LoginUiState.OtpSent
+                }
+                .onFailure { error ->
+                    _uiState.value = LoginUiState.Error(
+                        error.message ?: "Failed to send OTP. Please try again."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Check if user is already authenticated
+     */
+    fun checkAuthStatus() {
+        viewModelScope.launch {
+            if (authRepository.isAuthenticated()) {
+                authRepository.getCurrentUser().collect { user ->
+                    user?.let {
+                        _uiState.value = LoginUiState.Success(it)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Reset state to idle
+     */
+    fun resetState() {
+        _uiState.value = LoginUiState.Idle
+    }
+
+    private fun isValidEmail(email: String): Boolean {
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+
+    private fun isValidPhone(phone: String): Boolean {
+        return phone.matches(Constants.BD_PHONE_PATTERN.toRegex())
+    }
+}
+
+/**
+ * UI state for Login screen
+ */
+sealed class LoginUiState {
+    object Idle : LoginUiState()
+    object Loading : LoginUiState()
+    object OtpSent : LoginUiState()
+    data class Success(val user: User) : LoginUiState()
+    data class Error(val message: String) : LoginUiState()
+}
