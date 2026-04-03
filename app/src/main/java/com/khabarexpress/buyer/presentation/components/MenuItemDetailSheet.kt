@@ -268,7 +268,7 @@ fun MenuItemDetailSheet(
                     },
                     modifier = Modifier.height(56.dp)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = null)
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Add to Cart")
                 }

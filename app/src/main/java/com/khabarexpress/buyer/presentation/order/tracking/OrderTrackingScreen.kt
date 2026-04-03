@@ -228,15 +228,15 @@ fun OrderTrackingScreen(
                 }
             }
             
-            items(timeline) { event ->
-                TimelineItem(event = event)
+            items(timeline.size) { index ->
+                TimelineItem(event = timeline[index], isLast = index == timeline.lastIndex)
             }
         }
     }
 }
 
 @Composable
-fun TimelineItem(event: OrderTimelineEvent) {
+fun TimelineItem(event: OrderTimelineEvent, isLast: Boolean = false) {
     val dateFormat = remember { SimpleDateFormat("hh:mm a", Locale.US) }
     
     Row(
@@ -251,7 +251,7 @@ fun TimelineItem(event: OrderTimelineEvent) {
                 modifier = Modifier.size(12.dp),
                 tint = Success
             )
-            if (event != getSampleTimeline().last()) {
+            if (!isLast) {
                 Box(
                     modifier = Modifier
                         .width(2.dp)
