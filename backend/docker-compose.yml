@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Backend API
+  api:
+    build: .
+    container_name: khabarlagbe-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=mongodb://mongo:27017/khabarlagbe
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - khabarlagbe-network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+
+  # MongoDB
+  mongo:
+    image: mongo:7.0
+    container_name: khabarlagbe-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=khabarlagbe
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - khabarlagbe-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: khabarlagbe-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - khabarlagbe-network
+    command: redis-server --appendonly yes
+
+  # MongoDB Express (for development)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: khabarlagbe-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+    depends_on:
+      - mongo
+    networks:
+      - khabarlagbe-network
+    profiles:
+      - dev
+
+volumes:
+  mongo-data:
+  mongo-config:
+  redis-data:
+
+networks:
+  khabarlagbe-network:
+    driver: bridge

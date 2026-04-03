@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">খাবার এক্সপ্রেস - বিক্রেতা</string>
+    <string name="digital_partner">ডিজিটাল পার্টনার: কাশিমপুর দিনকাল</string>
+    
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">বাতিল</string>
+    <string name="save">সংরক্ষণ</string>
+    <string name="delete">মুছুন</string>
+    <string name="edit">সম্পাদনা</string>
+    <string name="search">অনুসন্ধান</string>
+    <string name="loading">লোড হচ্ছে...</string>
+    <string name="error">ত্রুটি</string>
+    <string name="retry">আবার চেষ্টা করুন</string>
+    <string name="done">সম্পন্ন</string>
+    <string name="close">বন্ধ</string>
+    
+    <!-- Auth -->
+    <string name="login">লগইন</string>
+    <string name="register">নিবন্ধন</string>
+    <string name="phone_number">ফোন নম্বর</string>
+    <string name="email">ইমেইল</string>
+    <string name="password">পাসওয়ার্ড</string>
+    <string name="logout">লগআউট</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard">ড্যাশবোর্ড</string>
+    <string name="new_orders">নতুন অর্ডার</string>
+    <string name="active_orders">সক্রিয় অর্ডার</string>
+    <string name="completed_orders">সম্পন্ন অর্ডার</string>
+    <string name="today_earnings">আজকের আয়</string>
+    <string name="total_earnings">মোট আয়</string>
+    <string name="accept_order">অর্ডার গ্রহণ করুন</string>
+    <string name="reject_order">অর্ডার প্রত্যাখ্যান করুন</string>
+    <string name="mark_ready">প্রস্তুত চিহ্নিত করুন</string>
+    
+    <!-- Menu Management -->
+    <string name="menu">মেনু</string>
+    <string name="add_item">আইটেম যোগ করুন</string>
+    <string name="edit_item">আইটেম সম্পাদনা করুন</string>
+    <string name="item_name">আইটেমের নাম</string>
+    <string name="item_price">মূল্য (৳)</string>
+    <string name="item_description">বিবরণ</string>
+    <string name="item_category">বিভাগ</string>
+    <string name="available">উপলব্ধ</string>
+    <string name="unavailable">অনুপলব্ধ</string>
+    
+    <!-- Restaurant Profile -->
+    <string name="restaurant_name">রেস্তোরাঁর নাম</string>
+    <string name="restaurant_address">রেস্তোরাঁর ঠিকানা</string>
+    <string name="restaurant_phone">ফোন নম্বর</string>
+    <string name="opening_time">খোলার সময়</string>
+    <string name="closing_time">বন্ধের সময়</string>
+    <string name="delivery_area">ডেলিভারি এলাকা</string>
+    <string name="min_order_amount">সর্বনিম্ন অর্ডার পরিমাণ</string>
+    <string name="open">খোলা</string>
+    <string name="closed">বন্ধ</string>
+    
+    <!-- Orders -->
+    <string name="order_id">অর্ডার আইডি</string>
+    <string name="order_time">অর্ডারের সময়</string>
+    <string name="customer_name">ক্রেতার নাম</string>
+    <string name="delivery_address">ডেলিভারি ঠিকানা</string>
+    <string name="order_total">অর্ডার মোট</string>
+    <string name="payment_method">পেমেন্ট পদ্ধতি</string>
+    <string name="preparing">প্রস্তুত করা হচ্ছে</string>
+    <string name="ready">প্রস্তুত</string>
+    <string name="delivered">ডেলিভারি হয়েছে</string>
+    <string name="cancelled">বাতিল</string>
+    
+    <!-- Notifications -->
+    <string name="new_order_notification">নতুন অর্ডার পেয়েছেন!</string>
+    <string name="order_cancelled_notification">অর্ডার বাতিল হয়েছে</string>
+    
+    <!-- Messages -->
+    <string name="network_error">নেটওয়ার্ক ত্রুটি। আপনার সংযোগ পরীক্ষা করুন।</string>
+    <string name="something_went_wrong">কিছু ভুল হয়েছে</string>
+    <string name="profile_updated">প্রোফাইল আপডেট হয়েছে</string>
+    <string name="menu_updated">মেনু আপডেট হয়েছে</string>
+    
+    <!-- Currency -->
+    <string name="currency_symbol">৳</string>
+    <string name="taka">টাকা</string>
+    
+    <!-- Settings -->
+    <string name="settings">সেটিংস</string>
+    <string name="notifications_settings">বিজ্ঞপ্তি সেটিংস</string>
+    <string name="about">সম্পর্কে</string>
+    <string name="terms_conditions">শর্তাবলী</string>
+    <string name="privacy_policy">গোপনীয়তা নীতি</string>
+    <string name="help_support">সাহায্য এবং সহায়তা</string>
+</resources>
