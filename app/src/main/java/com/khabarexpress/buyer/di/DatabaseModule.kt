@@ -21,7 +21,7 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context,
             KhabarExpressDatabase::class.java,
-            "khabarlagbe_database"
+            "khabarexpress_database"
         )
             .fallbackToDestructiveMigration()
             .build()

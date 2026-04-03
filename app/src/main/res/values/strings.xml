@@ -2,4 +2,189 @@
 <resources>
     <string name="app_name">খাবার এক্সপ্রেস</string>
     <string name="digital_partner">ডিজিটাল পার্টনার: কাশিমপুর দিনকাল</string>
+    
+    <!-- Common -->
+    <string name="ok">OK</string>
+    <string name="cancel">বাতিল</string>
+    <string name="save">সংরক্ষণ</string>
+    <string name="delete">মুছুন</string>
+    <string name="edit">সম্পাদনা</string>
+    <string name="search">অনুসন্ধান</string>
+    <string name="loading">লোড হচ্ছে...</string>
+    <string name="error">ত্রুটি</string>
+    <string name="retry">আবার চেষ্টা করুন</string>
+    <string name="done">সম্পন্ন</string>
+    <string name="close">বন্ধ</string>
+    
+    <!-- Auth -->
+    <string name="login">লগইন</string>
+    <string name="register">নিবন্ধন</string>
+    <string name="phone_number">ফোন নম্বর</string>
+    <string name="enter_phone">আপনার ফোন নম্বর দিন</string>
+    <string name="send_otp">OTP পাঠান</string>
+    <string name="verify_otp">OTP যাচাই করুন</string>
+    <string name="enter_otp">OTP দিন</string>
+    <string name="resend_otp">OTP পুনরায় পাঠান</string>
+    <string name="email">ইমেইল</string>
+    <string name="password">পাসওয়ার্ড</string>
+    <string name="full_name">পূর্ণ নাম</string>
+    <string name="logout">লগআউট</string>
+    
+    <!-- Home -->
+    <string name="home">হোম</string>
+    <string name="deliver_to">ডেলিভারি দিন</string>
+    <string name="current_location">বর্তমান অবস্থান</string>
+    <string name="search_restaurants">রেস্তোরাঁ বা খাবার খুঁজুন...</string>
+    <string name="categories">বিভাগ</string>
+    <string name="featured_restaurants">বিশেষ রেস্তোরাঁ</string>
+    <string name="popular_now">এখন জনপ্রিয়</string>
+    <string name="near_you">আপনার কাছে</string>
+    <string name="see_all">সব দেখুন</string>
+    <string name="order_now">এখনই অর্ডার করুন</string>
+    
+    <!-- Location (Text-based) -->
+    <string name="delivery_address_hint">ডেলিভারি ঠিকানা লিখুন (যেমন: কাশিমপুর, গাজীপুর)</string>
+    <string name="enter_address">আপনার ঠিকানা লিখুন</string>
+    <string name="address_label">ঠিকানা</string>
+    <string name="area_label">এলাকা</string>
+    <string name="city_label">শহর</string>
+    <string name="address_details">বিস্তারিত ঠিকানা</string>
+    
+    <!-- Restaurant -->
+    <string name="restaurant_closed">রেস্তোরাঁ বন্ধ</string>
+    <string name="restaurant_open">এখন খোলা</string>
+    <string name="delivery_time">ডেলিভারির সময়</string>
+    <string name="min_order">সর্বনিম্ন অর্ডার</string>
+    <string name="delivery_fee">ডেলিভারি ফি</string>
+    <string name="free_delivery">বিনামূল্যে ডেলিভারি</string>
+    <string name="rating">রেটিং</string>
+    <string name="reviews">রিভিউ</string>
+    <string name="menu">মেনু</string>
+    <string name="info">তথ্য</string>
+    <string name="most_ordered">সর্বাধিক অর্ডার</string>
+    <string name="add_to_cart">কার্টে যোগ করুন</string>
+    <string name="customize">কাস্টমাইজ করুন</string>
+    <string name="spice_level">ঝালের মাত্রা</string>
+    <string name="extras">অতিরিক্ত</string>
+    
+    <!-- Cart -->
+    <string name="cart">কার্ট</string>
+    <string name="your_cart">আপনার কার্ট</string>
+    <string name="cart_empty">আপনার কার্ট খালি</string>
+    <string name="start_ordering">সুস্বাদু খাবার অর্ডার শুরু করুন!</string>
+    <string name="item_total">আইটেম মোট</string>
+    <string name="subtotal">সাবটোটাল</string>
+    <string name="vat">ভ্যাট</string>
+    <string name="discount">ছাড়</string>
+    <string name="total">মোট</string>
+    <string name="proceed_to_checkout">চেকআউটে যান</string>
+    <string name="clear_cart">কার্ট পরিষ্কার করুন</string>
+    <string name="apply_promo">প্রমো কোড প্রয়োগ করুন</string>
+    <string name="promo_code">প্রমো কোড</string>
+    <string name="apply">প্রয়োগ করুন</string>
+    
+    <!-- Checkout -->
+    <string name="checkout">চেকআউট</string>
+    <string name="delivery_address">ডেলিভারি ঠিকানা</string>
+    <string name="add_new_address">নতুন ঠিকানা যোগ করুন</string>
+    <string name="change_address">ঠিকানা পরিবর্তন করুন</string>
+    <string name="delivery_time_slot">ডেলিভারির সময়</string>
+    <string name="asap">যত তাড়াতাড়ি সম্ভব</string>
+    <string name="scheduled">নির্ধারিত সময়ে</string>
+    <string name="payment_method">পেমেন্ট পদ্ধতি</string>
+    <string name="select_payment_method">পেমেন্ট পদ্ধতি নির্বাচন করুন</string>
+    <string name="special_instructions">বিশেষ নির্দেশনা</string>
+    <string name="add_instructions">রান্না বা ডেলিভারির নির্দেশনা যোগ করুন</string>
+    <string name="place_order">অর্ডার দিন</string>
+    <string name="order_summary">অর্ডার সারসংক্ষেপ</string>
+    
+    <!-- Payment Methods -->
+    <string name="bkash">বিকাশ</string>
+    <string name="nagad">নগদ</string>
+    <string name="rocket">রকেট</string>
+    <string name="upay">উপায়</string>
+    <string name="ssl_commerz">কার্ড পেমেন্ট</string>
+    <string name="cash_on_delivery">ক্যাশ অন ডেলিভারি</string>
+    
+    <!-- Address -->
+    <string name="house_no">বাড়ি নং</string>
+    <string name="road_no">রাস্তা নং</string>
+    <string name="area">এলাকা</string>
+    <string name="thana">থানা</string>
+    <string name="district">জেলা</string>
+    <string name="division">বিভাগ</string>
+    <string name="postal_code">পোস্টাল কোড</string>
+    <string name="landmark">ল্যান্ডমার্ক</string>
+    <string name="delivery_instructions">ডেলিভারি নির্দেশনা</string>
+    <string name="save_as">হিসেবে সংরক্ষণ করুন</string>
+    <string name="home_address">বাড়ি</string>
+    <string name="work_address">অফিস</string>
+    <string name="other_address">অন্যান্য</string>
+    <string name="set_as_default">ডিফল্ট হিসেবে সেট করুন</string>
+    
+    <!-- Order -->
+    <string name="order">অর্ডার</string>
+    <string name="order_placed">অর্ডার দেওয়া হয়েছে</string>
+    <string name="order_confirmed">অর্ডার নিশ্চিত হয়েছে</string>
+    <string name="preparing">প্রস্তুত হচ্ছে</string>
+    <string name="ready_for_pickup">পিকআপের জন্য প্রস্তুত</string>
+    <string name="picked_up">তোলা হয়েছে</string>
+    <string name="on_the_way">পথে আছে</string>
+    <string name="delivered">ডেলিভারি হয়েছে</string>
+    <string name="cancelled">বাতিল</string>
+    <string name="track_order">অর্ডার ট্র্যাক করুন</string>
+    <string name="order_details">অর্ডার বিবরণ</string>
+    <string name="order_history">অর্ডার ইতিহাস</string>
+    <string name="reorder">পুনরায় অর্ডার করুন</string>
+    <string name="estimated_delivery">আনুমানিক ডেলিভারি</string>
+    <string name="contact_restaurant">রেস্তোরাঁতে যোগাযোগ করুন</string>
+    <string name="cancel_order">অর্ডার বাতিল করুন</string>
+    
+    <!-- Profile -->
+    <string name="profile">প্রোফাইল</string>
+    <string name="edit_profile">প্রোফাইল সম্পাদনা করুন</string>
+    <string name="my_orders">আমার অর্ডার</string>
+    <string name="saved_addresses">সংরক্ষিত ঠিকানা</string>
+    <string name="favorites">পছন্দের</string>
+    <string name="saved_payment_methods">পেমেন্ট পদ্ধতি</string>
+    <string name="settings">সেটিংস</string>
+    <string name="language">ভাষা</string>
+    <string name="notifications">বিজ্ঞপ্তি</string>
+    <string name="help_support">সাহায্য এবং সহায়তা</string>
+    <string name="about">সম্পর্কে</string>
+    <string name="terms_conditions">শর্তাবলী</string>
+    <string name="privacy_policy">গোপনীয়তা নীতি</string>
+    
+    <!-- Cuisine Categories (Bangladesh) -->
+    <string name="bengali_traditional">বাংলা ঐতিহ্যবাহী</string>
+    <string name="biriyani_tehari">বিরিয়ানি এবং তেহারি</string>
+    <string name="kacchi_house">কাচ্চি হাউস</string>
+    <string name="chinese_bangla">চাইনিজ-বাংলা</string>
+    <string name="thai_bangla">থাই-বাংলা</string>
+    <string name="fast_food">ফাস্ট ফুড</string>
+    <string name="street_food">স্ট্রিট ফুড</string>
+    <string name="mishti_sweets">মিষ্টি</string>
+    <string name="iftar_special">ইফতার স্পেশাল</string>
+    <string name="breakfast">ব্রেকফাস্ট</string>
+    <string name="healthy">স্বাস্থ্যকর</string>
+    <string name="cafe_coffee">ক্যাফে এবং কফি</string>
+    
+    <!-- Messages -->
+    <string name="order_placed_success">আপনার অর্ডার সফলভাবে দেওয়া হয়েছে!</string>
+    <string name="payment_pending">পেমেন্ট অপেক্ষায় আছে</string>
+    <string name="payment_success">পেমেন্ট সফল হয়েছে</string>
+    <string name="payment_failed">পেমেন্ট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।</string>
+    <string name="invalid_phone">অবৈধ ফোন নম্বর</string>
+    <string name="invalid_otp">অবৈধ OTP</string>
+    <string name="network_error">নেটওয়ার্ক ত্রুটি। আপনার সংযোগ পরীক্ষা করুন।</string>
+    <string name="something_went_wrong">কিছু ভুল হয়েছে</string>
+    
+    <!-- Time -->
+    <string name="minutes">মিনিট</string>
+    <string name="hours">ঘণ্টা</string>
+    <string name="days">দিন</string>
+    
+    <!-- Currency -->
+    <string name="currency_symbol">৳</string>
+    <string name="taka">টাকা</string>
 </resources>
