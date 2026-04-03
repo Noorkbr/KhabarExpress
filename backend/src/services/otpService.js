@@ -28,7 +28,7 @@ class OTPService {
       // TODO: Integrate with Bangladesh SMS providers
       // Options: SSL Wireless, Banglalink, Robi, etc.
       // Example:
-      // await this.sendSMS(phone, `Your KhabarLagbe OTP is: ${otp}. Valid for ${process.env.OTP_EXPIRY_MINUTES} minutes.`);
+      // await this.sendSMS(phone, `Your KhabarExpress OTP is: ${otp}. Valid for ${process.env.OTP_EXPIRY_MINUTES} minutes.`);
 
       // For development, log OTP
       if (process.env.NODE_ENV === 'development') {

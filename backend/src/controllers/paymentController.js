@@ -88,7 +88,7 @@ exports.createPayment = async (req, res, next) => {
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerName: req.user.name,
-          customerEmail: req.user.email || `user${req.user.userId}@khabarlagbe.com`,
+          customerEmail: req.user.email || `user${req.user.userId}@khabarexpress.com`,
           customerPhone: req.user.phone,
           returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
         });

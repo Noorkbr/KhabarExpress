@@ -21,7 +21,7 @@ connectDatabase()
     server.listen(PORT, () => {
       console.log('');
       console.log('🚀 ========================================');
-      console.log(`🍛 KhabarLagbe Backend API`);
+      console.log(`🍛 KhabarExpress Backend API`);
       console.log('🚀 ========================================');
       console.log(`📡 Server running on port ${PORT}`);
       console.log(`🌍 Environment: ${NODE_ENV}`);

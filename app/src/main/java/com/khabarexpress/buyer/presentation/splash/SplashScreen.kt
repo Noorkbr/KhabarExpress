@@ -55,7 +55,7 @@ fun SplashScreen(
         ) {
             // App Logo or Name
             Text(
-                text = "KhabarLagbe",
+                text = "KhabarExpress",
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color.White

@@ -37,7 +37,7 @@ fun LoginScreen(
         // Logo or App Name
         Icon(
             imageVector = Icons.Filled.Restaurant,
-            contentDescription = "KhabarLagbe Logo",
+            contentDescription = "KhabarExpress Logo",
             modifier = Modifier.size(80.dp),
             tint = Primary
         )

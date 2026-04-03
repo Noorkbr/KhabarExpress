@@ -35,7 +35,7 @@ router.use('/upload', uploadRoutes);
 router.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'KhabarLagbe API v1',
+    message: 'KhabarExpress API v1',
     version: '1.0.0',
     endpoints: {
       auth: '/api/v1/auth',
@@ -52,7 +52,7 @@ router.get('/', (req, res) => {
       admin: '/api/v1/admin',
       upload: '/api/v1/upload',
     },
-    documentation: 'https://api.khabarlagbe.com/docs',
+    documentation: 'https://api.khabarexpress.com/docs',
   });
 });
 

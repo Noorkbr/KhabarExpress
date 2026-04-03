@@ -19,7 +19,7 @@ class NotificationService {
           priority: 'high',
           notification: {
             sound: 'default',
-            channelId: 'khabarlagbe_orders',
+            channelId: 'khabarexpress_orders',
           },
         },
       };

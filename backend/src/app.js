@@ -31,7 +31,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'KhabarLagbe API is running',
+    message: 'KhabarExpress API is running',
     timestamp: new Date().toISOString(),
     version: process.env.API_VERSION || 'v1'
   });

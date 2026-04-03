@@ -27,7 +27,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("KhabarLagbe Restaurant", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("KhabarExpress Restaurant", style = MaterialTheme.typography.titleLarge) },
                 actions = {
                     IconButton(onClick = { /* Navigate to notifications */ }) {
                         Badge(

@@ -162,7 +162,7 @@ fun SecondaryButton(
  * @param icon Optional leading icon
  */
 @Composable
-fun KhabarLagbeTextButton(
+fun KhabarExpressTextButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -244,7 +244,7 @@ private fun ButtonsPreview() {
                 isLoading = true
             )
             
-            KhabarLagbeTextButton(
+            KhabarExpressTextButton(
                 text = "See All",
                 onClick = {}
             )

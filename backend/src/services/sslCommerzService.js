@@ -25,7 +25,7 @@ class SSLCommerzService {
         cancel_url: `${process.env.BASE_URL}/api/v1/payment/sslcommerz/cancel`,
         ipn_url: `${process.env.BASE_URL}/api/v1/payment/sslcommerz/ipn`,
         cus_name: customerName,
-        cus_email: customerEmail || 'customer@khabarlagbe.com',
+        cus_email: customerEmail || 'customer@khabarexpress.com',
         cus_phone: customerPhone,
         cus_add1: 'Dhaka',
         cus_city: 'Dhaka',

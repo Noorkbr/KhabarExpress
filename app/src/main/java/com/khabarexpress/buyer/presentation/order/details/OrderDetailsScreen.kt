@@ -817,7 +817,7 @@ private fun HelpDialog(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "📧 Email: support@khabarlagbe.com",
+                    text = "📧 Email: support@khabarexpress.com",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
