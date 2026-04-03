@@ -237,6 +237,7 @@ fun MapPlaceholder(
                 }
                 
                 Text(
+                    text = "Tap on the map to refine your location",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
