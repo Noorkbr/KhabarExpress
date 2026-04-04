@@ -310,8 +310,6 @@ exports.acceptOrder = async (req, res, next) => {
 
     const order = await findRestaurantOrder(id, req.user.restaurantId, res);
     if (!order) return;
-      });
-    }
 
     if (order.status !== 'pending') {
       return res.status(400).json({

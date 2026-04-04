@@ -21,82 +21,12 @@
 #-renamesourcefileattribute SourceFile
 
 # ==========================================
-# Mapbox SDK ProGuard Rules (COMPLETE)
+# Retrofit & OkHttp
 # ==========================================
-
-# Keep all Mapbox classes and methods
--keep class com.mapbox.** { *; }
--keep interface com.mapbox.** { *; }
--dontwarn com.mapbox.**
-
-# CRITICAL: Keep Mapbox Initialization classes (fixes ClassNotFoundException)
--keep class com.mapbox.common.** { *; }
--keep class com.mapbox.common.BaseMapboxInitializer { *; }
--keep class com.mapbox.navigation.core.internal.MapboxNavigationSDKInitializer { *; }
--keep class * extends com.mapbox.common.BaseMapboxInitializer { *; }
-
-# Keep Mapbox ContentProvider and Startup Initializers
--keep class * extends androidx.startup.Initializer { *; }
--keep class androidx.startup.InitializationProvider { *; }
-
-# ==========================================
-# AndroidX Startup (CRITICAL for Mapbox)
-# ==========================================
-# Keep InitializationProvider and all Initializer implementations
--keep class androidx.startup.** { *; }
--keep interface androidx.startup.Initializer
--keep class * extends androidx.startup.Initializer {
-    <init>();
-    public java.util.List dependencies();
-    public void create(android.content.Context);
-}
-
-# Keep all ContentProvider implementations
--keep class * extends android.content.ContentProvider {
-    <init>();
-}
-
-# Keep androidx.startup.InitializationProvider specifically
--keepnames class androidx.startup.InitializationProvider
-
-# Keep Mapbox Navigation lifecycle components
--keep class com.mapbox.navigation.** { *; }
--keep interface com.mapbox.navigation.** { *; }
-
-# Keep GeoJSON and Turf
--keep class com.mapbox.geojson.** { *; }
--keep class com.mapbox.turf.** { *; }
-
-# Keep Mapbox Native SDK
--keep class com.mapbox.bindgen.** { *; }
-
-# Keep annotations used by Mapbox
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes EnclosingMethod
 -keepattributes InnerClasses
-
-# Keep native methods
--keepclasseswithmembernames class * {
-    native <methods>;
-}
-
-# Mapbox services and listeners
--keepclassmembers class * {
-    @com.mapbox.** <fields>;
-    @com.mapbox.** <methods>;
-}
-
-# Keep serialization classes for Mapbox
--keepclassmembers class * implements java.io.Serializable {
-    private static final java.io.ObjectStreamField[] serialPersistentFields;
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-    java.lang.Object writeReplace();
-    java.lang.Object readResolve();
-}
-
-# Retrofit and OkHttp (used by Mapbox)
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeInvisibleAnnotations
 -keepattributes RuntimeVisibleParameterAnnotations
@@ -106,11 +36,17 @@
     @retrofit2.http.* <methods>;
 }
 
+# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
 # OkHttp platform used only on JVM and when Conscrypt dependency is available.
 -dontwarn okhttp3.internal.platform.ConscryptPlatform
 -dontwarn org.conscrypt.ConscryptHostnameVerifier
 
-# Kotlin serialization
+# ==========================================
+# Kotlin Serialization
+# ==========================================
 -dontnote kotlinx.serialization.AnnotationsKt
 
 -keepclassmembers class kotlinx.serialization.json.** {
@@ -120,11 +56,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
--keep,allowobfuscation,allowshrinking interface retrofit2.Call
--keep,allowobfuscation,allowshrinking class retrofit2.Response
-
-# Hilt
+# ==========================================
+# Hilt / Dagger Dependency Injection
+# ==========================================
 -dontwarn javax.annotation.**
 -keepclassmembers,allowobfuscation class * {
     @javax.inject.* *;
@@ -135,3 +69,15 @@
 -keep class dagger.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.internal.GeneratedComponent
+
+# ==========================================
+# Socket.IO Client
+# ==========================================
+-keep class io.socket.** { *; }
+-dontwarn io.socket.**
+
+# ==========================================
+# Google Play Services (Location)
+# ==========================================
+-keep class com.google.android.gms.location.** { *; }
+-dontwarn com.google.android.gms.**
