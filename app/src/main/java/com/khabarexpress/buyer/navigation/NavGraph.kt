@@ -29,6 +29,9 @@ import com.khabarexpress.buyer.presentation.profile.edit.EditProfileScreen
 import com.khabarexpress.buyer.presentation.profile.addresses.AddressManagementScreen
 import com.khabarexpress.buyer.presentation.profile.favorites.FavoritesScreen
 import com.khabarexpress.buyer.presentation.search.SearchScreen
+import com.khabarexpress.buyer.presentation.admin.dashboard.AdminDashboardScreen
+import com.khabarexpress.buyer.presentation.admin.verification.RestaurantVerificationScreen
+import com.khabarexpress.buyer.presentation.admin.reports.PaymentReportsScreen
 
 private const val TRANSITION_DURATION = 350
 
@@ -216,6 +219,19 @@ fun NavGraph(
         
         composable(Screen.Favorites.route) {
             FavoritesScreen(navController = navController)
+        }
+        
+        // Admin screens
+        composable(Screen.AdminDashboard.route) {
+            AdminDashboardScreen(navController = navController)
+        }
+        
+        composable(Screen.AdminRestaurantVerification.route) {
+            RestaurantVerificationScreen(navController = navController)
+        }
+        
+        composable(Screen.AdminPaymentReports.route) {
+            PaymentReportsScreen(navController = navController)
         }
     }
 }

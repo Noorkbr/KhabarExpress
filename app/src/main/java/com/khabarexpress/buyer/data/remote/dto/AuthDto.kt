@@ -64,5 +64,6 @@ data class UserDto(
     val email: String,
     val phone: String,
     val profileImageUrl: String? = null,
+    val role: String = "customer",
     val createdAt: Long
 )

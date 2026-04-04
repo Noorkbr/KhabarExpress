@@ -44,4 +44,9 @@ sealed class Screen(val route: String) {
     data object SavedAddresses : Screen("saved_addresses")
     data object Favorites : Screen("favorites")
     data object Settings : Screen("settings")
+    
+    // Admin
+    data object AdminDashboard : Screen("admin_dashboard")
+    data object AdminRestaurantVerification : Screen("admin_restaurant_verification")
+    data object AdminPaymentReports : Screen("admin_payment_reports")
 }

@@ -1,5 +1,6 @@
 package com.khabarexpress.buyer.di
 
+import com.khabarexpress.buyer.data.remote.api.AdminApi
 import com.khabarexpress.buyer.data.remote.api.AuthApi
 import com.khabarexpress.buyer.data.remote.api.OrderApi
 import com.khabarexpress.buyer.data.remote.api.RestaurantApi
@@ -72,5 +73,11 @@ object NetworkModule {
     @Singleton
     fun provideOrderApi(retrofit: Retrofit): OrderApi {
         return retrofit.create(OrderApi::class.java)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideAdminApi(retrofit: Retrofit): AdminApi {
+        return retrofit.create(AdminApi::class.java)
     }
 }

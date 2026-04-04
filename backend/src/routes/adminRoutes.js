@@ -13,5 +13,8 @@ router.get('/analytics', adminController.getAnalytics);
 router.get('/revenue', adminController.getRevenueAnalytics);
 router.get('/user-growth', adminController.getUserGrowthAnalytics);
 router.get('/export', adminController.exportData);
+router.get('/profit', adminController.getProfitAnalytics);
+router.get('/financial-report', adminController.exportFinancialReport);
+router.get('/verification-stats', adminController.getVerificationStats);
 
 module.exports = router;

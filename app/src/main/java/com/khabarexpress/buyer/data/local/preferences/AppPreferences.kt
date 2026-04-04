@@ -22,6 +22,7 @@ class AppPreferences(private val context: Context) {
         private val AUTH_TOKEN = stringPreferencesKey("auth_token")
         private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         private val USER_ID = stringPreferencesKey("user_id")
+        private val USER_ROLE = stringPreferencesKey("user_role")
     }
     
     /**
@@ -82,6 +83,31 @@ class AppPreferences(private val context: Context) {
     }
     
     /**
+     * Save user role (customer, admin, restaurant)
+     */
+    suspend fun saveUserRole(role: String) {
+        context.dataStore.edit { preferences ->
+            preferences[USER_ROLE] = role
+        }
+    }
+    
+    /**
+     * Get user role as Flow
+     */
+    fun getUserRole(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[USER_ROLE]
+        }
+    }
+    
+    /**
+     * Get user role synchronously (suspend, read-only)
+     */
+    suspend fun getUserRoleSync(): String? {
+        return context.dataStore.data.first()[USER_ROLE]
+    }
+    
+    /**
      * Clear all authentication data
      */
     suspend fun clearAuthData() {
@@ -89,6 +115,7 @@ class AppPreferences(private val context: Context) {
             preferences.remove(AUTH_TOKEN)
             preferences.remove(REFRESH_TOKEN)
             preferences.remove(USER_ID)
+            preferences.remove(USER_ROLE)
         }
     }
 }

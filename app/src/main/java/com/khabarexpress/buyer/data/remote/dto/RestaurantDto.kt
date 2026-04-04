@@ -20,7 +20,8 @@ data class RestaurantDto(
     val latitude: Double,
     val longitude: Double,
     val address: String,
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val approvalStatus: String = "approved"
 )
 
 @Serializable

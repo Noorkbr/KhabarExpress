@@ -7,6 +7,7 @@ data class User(
     val phone: String,
     val profileImageUrl: String? = null,
     val savedAddresses: List<Address> = emptyList(),
+    val role: String = "customer", // "customer", "admin", "restaurant"
     val createdAt: Long = System.currentTimeMillis()
 )
 
