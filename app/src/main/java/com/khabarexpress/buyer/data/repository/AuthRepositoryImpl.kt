@@ -26,6 +26,38 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     /**
+     * Seamless phone-only login for end users (no verification required).
+     * The server creates or retrieves the user account based on phone number alone.
+     */
+    override suspend fun loginWithPhoneOnly(phone: String): Result<User> {
+        return try {
+            val response = authApi.phoneLogin(PhoneLoginRequest(phone))
+
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+
+                if (authResponse.success && authResponse.user != null && authResponse.token != null) {
+                    // Save auth token
+                    appPreferences.saveAuthToken(authResponse.token)
+                    authResponse.refreshToken?.let { appPreferences.saveRefreshToken(it) }
+                    appPreferences.saveUserId(authResponse.user.id)
+
+                    // Cache user in Room
+                    userDao.insertUser(authResponse.user.toEntity())
+
+                    Result.success(authResponse.user.toDomainModel())
+                } else {
+                    Result.failure(Exception(authResponse.message))
+                }
+            } else {
+                Result.failure(Exception("Phone login failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: ${e.message}", e))
+        }
+    }
+
+    /**
      * Login with email and password
      */
     override suspend fun login(email: String, password: String): Result<User> {

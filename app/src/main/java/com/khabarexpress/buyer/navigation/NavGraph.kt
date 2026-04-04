@@ -1,5 +1,7 @@
 package com.khabarexpress.buyer.navigation
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -10,6 +12,7 @@ import androidx.navigation.navArgument
 import com.khabarexpress.buyer.presentation.auth.login.LoginScreen
 import com.khabarexpress.buyer.presentation.auth.register.RegisterScreen
 import com.khabarexpress.buyer.presentation.auth.otp.OTPVerificationScreen
+import com.khabarexpress.buyer.presentation.onboarding.OnboardingScreen
 import com.khabarexpress.buyer.presentation.splash.SplashScreen
 import com.khabarexpress.buyer.presentation.home.HomeScreen
 import com.khabarexpress.buyer.presentation.restaurant.RestaurantDetailsScreen
@@ -27,6 +30,8 @@ import com.khabarexpress.buyer.presentation.profile.addresses.AddressManagementS
 import com.khabarexpress.buyer.presentation.profile.favorites.FavoritesScreen
 import com.khabarexpress.buyer.presentation.search.SearchScreen
 
+private const val TRANSITION_DURATION = 350
+
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -36,11 +41,52 @@ fun NavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            fadeIn(animationSpec = tween(TRANSITION_DURATION)) +
+                slideInHorizontally(
+                    animationSpec = tween(TRANSITION_DURATION),
+                    initialOffsetX = { it / 4 }
+                )
+        },
+        exitTransition = {
+            fadeOut(animationSpec = tween(TRANSITION_DURATION)) +
+                slideOutHorizontally(
+                    animationSpec = tween(TRANSITION_DURATION),
+                    targetOffsetX = { -it / 4 }
+                )
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = tween(TRANSITION_DURATION)) +
+                slideInHorizontally(
+                    animationSpec = tween(TRANSITION_DURATION),
+                    initialOffsetX = { -it / 4 }
+                )
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = tween(TRANSITION_DURATION)) +
+                slideOutHorizontally(
+                    animationSpec = tween(TRANSITION_DURATION),
+                    targetOffsetX = { it / 4 }
+                )
+        }
     ) {
-        // Splash
-        composable(Screen.Splash.route) {
+        // Splash – no transition, instant
+        composable(
+            route = Screen.Splash.route,
+            enterTransition = { fadeIn(tween(0)) },
+            exitTransition = { fadeOut(tween(TRANSITION_DURATION)) }
+        ) {
             SplashScreen(navController = navController)
+        }
+
+        // Onboarding
+        composable(
+            route = Screen.Onboarding.route,
+            enterTransition = { fadeIn(tween(TRANSITION_DURATION)) },
+            exitTransition = { fadeOut(tween(TRANSITION_DURATION)) }
+        ) {
+            OnboardingScreen(navController = navController)
         }
         
         // Auth

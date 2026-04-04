@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 /**
  * ViewModel for Login screen
- * Handles user authentication via email/password or phone/OTP
+ * Handles user authentication via phone number (buyer) or phone+password (staff)
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -29,7 +29,36 @@ class LoginViewModel @Inject constructor(
     }
 
     /**
-     * Login with email and password
+     * Seamless phone-only login for end users (no verification required).
+     * Bangladeshi phone numbers only.
+     */
+    fun loginWithPhoneOnly(phone: String) {
+        if (phone.isBlank()) {
+            _uiState.value = LoginUiState.Error("Phone number cannot be empty")
+            return
+        }
+
+        if (!isValidPhone(phone)) {
+            _uiState.value = LoginUiState.Error("Please enter a valid Bangladeshi phone number")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = LoginUiState.Loading
+            authRepository.loginWithPhoneOnly(phone)
+                .onSuccess { user ->
+                    _uiState.value = LoginUiState.Success(user)
+                }
+                .onFailure { error ->
+                    _uiState.value = LoginUiState.Error(
+                        error.message ?: "Login failed. Please try again."
+                    )
+                }
+        }
+    }
+
+    /**
+     * Login with email and password (kept for staff/restaurant access)
      */
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
