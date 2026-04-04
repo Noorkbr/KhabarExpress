@@ -50,9 +50,6 @@ fun RestaurantLoginScreen(
 
     LaunchedEffect(Unit) {
         showContent = true
-    }
-
-    LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is LoginEvent.LoginSuccess -> {
