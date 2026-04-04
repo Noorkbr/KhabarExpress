@@ -251,6 +251,210 @@ exports.cancelOrder = async (req, res, next) => {
   }
 };
 
+// Get restaurant orders (for restaurant dashboard)
+exports.getRestaurantOrders = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const restaurantId = req.user.restaurantId;
+
+    const query = { restaurant: restaurantId };
+    if (status) {
+      query.status = status;
+    }
+
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .populate('user', 'name phone')
+      .populate('rider', 'name phone');
+
+    const total = await Order.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit)),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Helper: Find order and verify restaurant ownership
+const findRestaurantOrder = async (orderId, restaurantId, res) => {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    res.status(404).json({ success: false, message: 'Order not found' });
+    return null;
+  }
+  if (order.restaurant.toString() !== restaurantId.toString()) {
+    res.status(403).json({ success: false, message: 'Access denied' });
+    return null;
+  }
+  return order;
+};
+
+// Accept order (restaurant confirms the order)
+exports.acceptOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { estimatedPrepTime } = req.body;
+
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
+      });
+    }
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Order can only be accepted when pending',
+      });
+    }
+
+    order.status = 'confirmed';
+    if (estimatedPrepTime) {
+      order.estimatedDelivery = new Date(Date.now() + estimatedPrepTime * 60000);
+    }
+    order.statusHistory.push({
+      status: 'confirmed',
+      timestamp: new Date(),
+      note: 'Order accepted by restaurant',
+    });
+
+    await order.save();
+
+    // Emit real-time event
+    try {
+      const io = getIO();
+      io.of('/order').to(`order:${order._id}`).emit('order:status', {
+        orderId: order._id,
+        status: order.status,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order accepted',
+      data: { order },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Reject order (restaurant declines the order)
+exports.rejectOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Order can only be rejected when pending',
+      });
+    }
+
+    order.status = 'cancelled';
+    order.cancellationReason = reason || 'Rejected by restaurant';
+    order.statusHistory.push({
+      status: 'cancelled',
+      timestamp: new Date(),
+      note: `Rejected by restaurant: ${reason || 'No reason given'}`,
+    });
+
+    await order.save();
+
+    // Emit real-time event
+    try {
+      const io = getIO();
+      io.of('/order').to(`order:${order._id}`).emit('order:cancelled', {
+        orderId: order._id,
+        status: order.status,
+        reason: order.cancellationReason,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Order rejected',
+      data: { order },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update order status (restaurant updates preparation status)
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, note } = req.body;
+
+    const validTransitions = {
+      confirmed: ['preparing'],
+      preparing: ['ready'],
+      ready: ['picked_up'],
+    };
+
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
+
+    // Validate status transition
+    const allowedStatuses = validTransitions[order.status];
+    if (!allowedStatuses || !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot transition from '${order.status}' to '${status}'`,
+      });
+    }
+
+    order.status = status;
+    order.statusHistory.push({
+      status,
+      timestamp: new Date(),
+      note: note || `Status updated to ${status}`,
+    });
+
+    await order.save();
+
+    // Emit real-time event
+    try {
+      const io = getIO();
+      io.of('/order').to(`order:${order._id}`).emit('order:status', {
+        orderId: order._id,
+        status: order.status,
+      });
+    } catch (err) {
+      console.error('Socket emit error:', err);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      data: { order },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Track order (real-time updates handled via Socket.IO)
 exports.trackOrder = async (req, res, next) => {
   try {

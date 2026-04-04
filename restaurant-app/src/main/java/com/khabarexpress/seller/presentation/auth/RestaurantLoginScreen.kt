@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khabarexpress.seller.navigation.RestaurantScreen
 
@@ -35,7 +36,8 @@ private val Navy = Color(0xFF1B2A4A)
 @Composable
 fun RestaurantLoginScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -44,8 +46,22 @@ fun RestaurantLoginScreen(
     var phoneError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
+    val uiState by viewModel.uiState.collectAsState()
+
     LaunchedEffect(Unit) {
         showContent = true
+        viewModel.events.collect { event ->
+            when (event) {
+                is LoginEvent.LoginSuccess -> {
+                    navController.navigate(RestaurantScreen.Dashboard.route) {
+                        popUpTo(RestaurantScreen.Login.route) { inclusive = true }
+                    }
+                }
+                is LoginEvent.ShowError -> {
+                    // Error is displayed via uiState.error below
+                }
+            }
+        }
     }
 
     LaunchedEffect(phoneNumber) { phoneError = null }
@@ -230,7 +246,21 @@ fun RestaurantLoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Show API error
+            uiState.error?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Login button
             AnimatedVisibility(
@@ -251,9 +281,7 @@ fun RestaurantLoginScreen(
                             hasError = true
                         }
                         if (!hasError) {
-                            navController.navigate(RestaurantScreen.Dashboard.route) {
-                                popUpTo(RestaurantScreen.Login.route) { inclusive = true }
-                            }
+                            viewModel.login(fullNumber, password)
                         }
                     },
                     modifier = Modifier
@@ -267,15 +295,24 @@ fun RestaurantLoginScreen(
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 4.dp,
                         pressedElevation = 8.dp
-                    )
+                    ),
+                    enabled = !uiState.isLoading
                 ) {
-                    Text(
-                        "LOGIN",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            letterSpacing = 2.sp
-                        ),
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Navy,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            "LOGIN",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                letterSpacing = 2.sp
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
