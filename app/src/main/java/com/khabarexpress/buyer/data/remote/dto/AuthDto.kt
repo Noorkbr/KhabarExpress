@@ -9,11 +9,6 @@ data class PhoneRequest(
 )
 
 @Serializable
-data class PhoneLoginRequest(
-    val phone: String
-)
-
-@Serializable
 data class OtpResponse(
     val success: Boolean,
     val message: String,

@@ -204,7 +204,6 @@ fun LoginScreen(
             ) {
                 Button(
                     onClick = {
-                        val cleaned = phoneNumber.trimStart('0')
                         val fullNumber = if (phoneNumber.startsWith("0")) phoneNumber else "0$phoneNumber"
                         // Validate BD phone: must be 01X-XXXXXXXX
                         val isValid = fullNumber.matches(Regex("^01[3-9]\\d{8}$"))

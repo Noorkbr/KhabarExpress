@@ -31,7 +31,7 @@ class AuthRepositoryImpl @Inject constructor(
      */
     override suspend fun loginWithPhoneOnly(phone: String): Result<User> {
         return try {
-            val response = authApi.phoneLogin(PhoneLoginRequest(phone))
+            val response = authApi.phoneLogin(PhoneRequest(phone))
 
             if (response.isSuccessful && response.body() != null) {
                 val authResponse = response.body()!!
