@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.model.Analytics
 import com.khabarexpress.seller.domain.repository.RestaurantRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -35,20 +37,26 @@ class EarningsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            restaurantRepository.getAnalytics("today").fold(
-                onSuccess = { _uiState.value = _uiState.value.copy(todayAnalytics = it) },
-                onFailure = { }
-            )
+            coroutineScope {
+                val todayDeferred = async { restaurantRepository.getAnalytics("today") }
+                val weekDeferred = async { restaurantRepository.getAnalytics("week") }
+                val monthDeferred = async { restaurantRepository.getAnalytics("month") }
 
-            restaurantRepository.getAnalytics("week").fold(
-                onSuccess = { _uiState.value = _uiState.value.copy(weekAnalytics = it) },
-                onFailure = { }
-            )
+                todayDeferred.await().fold(
+                    onSuccess = { _uiState.value = _uiState.value.copy(todayAnalytics = it) },
+                    onFailure = { }
+                )
 
-            restaurantRepository.getAnalytics("month").fold(
-                onSuccess = { _uiState.value = _uiState.value.copy(monthAnalytics = it) },
-                onFailure = { }
-            )
+                weekDeferred.await().fold(
+                    onSuccess = { _uiState.value = _uiState.value.copy(weekAnalytics = it) },
+                    onFailure = { }
+                )
+
+                monthDeferred.await().fold(
+                    onSuccess = { _uiState.value = _uiState.value.copy(monthAnalytics = it) },
+                    onFailure = { }
+                )
+            }
 
             _uiState.value = _uiState.value.copy(isLoading = false)
         }

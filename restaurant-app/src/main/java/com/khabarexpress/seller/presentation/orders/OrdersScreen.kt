@@ -249,8 +249,9 @@ private fun OrderCard(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    val reason = rejectReason.ifBlank { "Rejected by restaurant" }
                     showRejectDialog = false
-                    onReject(rejectReason.ifBlank { "Rejected by restaurant" })
+                    onReject(reason)
                     rejectReason = ""
                 }) {
                     Text("Reject", color = Color.Red)

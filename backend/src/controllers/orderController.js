@@ -288,26 +288,28 @@ exports.getRestaurantOrders = async (req, res, next) => {
   }
 };
 
+// Helper: Find order and verify restaurant ownership
+const findRestaurantOrder = async (orderId, restaurantId, res) => {
+  const order = await Order.findById(orderId);
+  if (!order) {
+    res.status(404).json({ success: false, message: 'Order not found' });
+    return null;
+  }
+  if (order.restaurant.toString() !== restaurantId.toString()) {
+    res.status(403).json({ success: false, message: 'Access denied' });
+    return null;
+  }
+  return order;
+};
+
 // Accept order (restaurant confirms the order)
 exports.acceptOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { estimatedPrepTime } = req.body;
 
-    const order = await Order.findById(id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-    }
-
-    // Verify restaurant ownership
-    if (order.restaurant.toString() !== req.user.restaurantId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
       });
     }
 
@@ -357,22 +359,8 @@ exports.rejectOrder = async (req, res, next) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const order = await Order.findById(id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-    }
-
-    // Verify restaurant ownership
-    if (order.restaurant.toString() !== req.user.restaurantId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-      });
-    }
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
 
     if (order.status !== 'pending') {
       return res.status(400).json({
@@ -425,22 +413,8 @@ exports.updateOrderStatus = async (req, res, next) => {
       ready: ['picked_up'],
     };
 
-    const order = await Order.findById(id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-    }
-
-    // Verify restaurant ownership
-    if (order.restaurant.toString() !== req.user.restaurantId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-      });
-    }
+    const order = await findRestaurantOrder(id, req.user.restaurantId, res);
+    if (!order) return;
 
     // Validate status transition
     const allowedStatuses = validTransitions[order.status];

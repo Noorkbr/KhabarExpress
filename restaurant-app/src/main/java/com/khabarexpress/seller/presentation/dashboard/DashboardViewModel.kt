@@ -8,6 +8,8 @@ import com.khabarexpress.seller.domain.repository.AuthRepository
 import com.khabarexpress.seller.domain.repository.OrderRepository
 import com.khabarexpress.seller.domain.repository.RestaurantRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -53,36 +55,39 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Load analytics
-            restaurantRepository.getAnalytics("today").fold(
-                onSuccess = { analytics ->
-                    _uiState.value = _uiState.value.copy(analytics = analytics)
-                },
-                onFailure = { }
-            )
+            coroutineScope {
+                // Load analytics, pending, confirmed, and preparing orders in parallel
+                val analyticsDeferred = async {
+                    restaurantRepository.getAnalytics("today")
+                }
+                val pendingDeferred = async {
+                    orderRepository.getOrders(status = "pending")
+                }
+                val confirmedDeferred = async {
+                    orderRepository.getOrders(status = "confirmed")
+                }
+                val preparingDeferred = async {
+                    orderRepository.getOrders(status = "preparing")
+                }
 
-            // Load pending orders
-            orderRepository.getOrders(status = "pending").fold(
-                onSuccess = { orders ->
-                    _uiState.value = _uiState.value.copy(pendingOrders = orders)
-                },
-                onFailure = { }
-            )
+                analyticsDeferred.await().fold(
+                    onSuccess = { analytics ->
+                        _uiState.value = _uiState.value.copy(analytics = analytics)
+                    },
+                    onFailure = { }
+                )
 
-            // Load active orders (confirmed + preparing)
-            orderRepository.getOrders(status = "confirmed").fold(
-                onSuccess = { confirmedOrders ->
-                    orderRepository.getOrders(status = "preparing").fold(
-                        onSuccess = { preparingOrders ->
-                            _uiState.value = _uiState.value.copy(
-                                activeOrders = confirmedOrders + preparingOrders
-                            )
-                        },
-                        onFailure = { }
-                    )
-                },
-                onFailure = { }
-            )
+                pendingDeferred.await().fold(
+                    onSuccess = { orders ->
+                        _uiState.value = _uiState.value.copy(pendingOrders = orders)
+                    },
+                    onFailure = { }
+                )
+
+                val confirmed = confirmedDeferred.await().getOrDefault(emptyList())
+                val preparing = preparingDeferred.await().getOrDefault(emptyList())
+                _uiState.value = _uiState.value.copy(activeOrders = confirmed + preparing)
+            }
 
             _uiState.value = _uiState.value.copy(isLoading = false)
         }
