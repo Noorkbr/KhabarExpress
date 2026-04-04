@@ -16,7 +16,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +31,6 @@ import com.khabarexpress.seller.navigation.RestaurantScreen
 // Luxury brand colors matching the buyer app palette
 private val Gold = Color(0xFFD4A03C)
 private val Navy = Color(0xFF1B2A4A)
-private val GoldLight = Color(0xFFF5E6C8)
 
 @Composable
 fun RestaurantLoginScreen(

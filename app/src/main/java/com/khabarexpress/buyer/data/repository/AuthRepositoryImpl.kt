@@ -9,6 +9,7 @@ import com.khabarexpress.buyer.data.remote.dto.*
 import com.khabarexpress.buyer.domain.model.User
 import com.khabarexpress.buyer.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -188,11 +189,7 @@ class AuthRepositoryImpl @Inject constructor(
             if (token != null) {
                 val userId = appPreferences.getUserId()
                 if (userId != null) {
-                    var user: User? = null
-                    userDao.getUserById(userId).collect { userEntity ->
-                        user = userEntity?.toDomainModel()
-                    }
-                    user
+                    userDao.getUserById(userId).firstOrNull()?.toDomainModel()
                 } else {
                     null
                 }

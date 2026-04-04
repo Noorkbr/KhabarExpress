@@ -17,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -29,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.khabarexpress.buyer.navigation.Screen
 import com.khabarexpress.buyer.ui.theme.Gold
-import com.khabarexpress.buyer.ui.theme.GoldLight
 import com.khabarexpress.buyer.ui.theme.Navy
 
 data class OnboardingPage(
