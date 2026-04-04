@@ -9,6 +9,7 @@ import com.khabarexpress.buyer.data.remote.dto.*
 import com.khabarexpress.buyer.domain.model.User
 import com.khabarexpress.buyer.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,6 +25,38 @@ class AuthRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
     private val appPreferences: AppPreferences
 ) : AuthRepository {
+
+    /**
+     * Seamless phone-only login for end users (no verification required).
+     * The server creates or retrieves the user account based on phone number alone.
+     */
+    override suspend fun loginWithPhoneOnly(phone: String): Result<User> {
+        return try {
+            val response = authApi.phoneLogin(PhoneRequest(phone))
+
+            if (response.isSuccessful && response.body() != null) {
+                val authResponse = response.body()!!
+
+                if (authResponse.success && authResponse.user != null && authResponse.token != null) {
+                    // Save auth token
+                    appPreferences.saveAuthToken(authResponse.token)
+                    authResponse.refreshToken?.let { appPreferences.saveRefreshToken(it) }
+                    appPreferences.saveUserId(authResponse.user.id)
+
+                    // Cache user in Room
+                    userDao.insertUser(authResponse.user.toEntity())
+
+                    Result.success(authResponse.user.toDomainModel())
+                } else {
+                    Result.failure(Exception(authResponse.message))
+                }
+            } else {
+                Result.failure(Exception("Phone login failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: ${e.message}", e))
+        }
+    }
 
     /**
      * Login with email and password
@@ -156,11 +189,7 @@ class AuthRepositoryImpl @Inject constructor(
             if (token != null) {
                 val userId = appPreferences.getUserId()
                 if (userId != null) {
-                    var user: User? = null
-                    userDao.getUserById(userId).collect { userEntity ->
-                        user = userEntity?.toDomainModel()
-                    }
-                    user
+                    userDao.getUserById(userId).firstOrNull()?.toDomainModel()
                 } else {
                     null
                 }

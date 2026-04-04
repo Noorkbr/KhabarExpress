@@ -3,6 +3,7 @@ package com.khabarexpress.buyer.navigation
 sealed class Screen(val route: String) {
     // Auth
     data object Splash : Screen("splash")
+    data object Onboarding : Screen("onboarding")
     data object Login : Screen("login")
     data object Register : Screen("register")
     data object OTPVerification : Screen("otp_verification/{phoneNumber}") {

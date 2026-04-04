@@ -20,28 +20,28 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 private val LightColorScheme = lightColorScheme(
     primary = Primary,
     onPrimary = Color.White,
-    primaryContainer = PrimaryVariant,
-    onPrimaryContainer = Color.White,
-    
+    primaryContainer = GoldLight,
+    onPrimaryContainer = Navy,
+
     secondary = Secondary,
     onSecondary = Color.White,
     secondaryContainer = SecondaryVariant,
     onSecondaryContainer = Color.White,
-    
+
     tertiary = Info,
     onTertiary = Color.White,
-    
+
     background = BackgroundLight,
     onBackground = TextPrimary,
-    
+
     surface = SurfaceLight,
     onSurface = TextPrimary,
     surfaceVariant = SurfaceVariant,
     onSurfaceVariant = TextSecondary,
-    
+
     error = Error,
     onError = Color.White,
-    
+
     outline = Divider,
     outlineVariant = TextDisabled
 )
@@ -51,26 +51,26 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = Color.Black,
     primaryContainer = Primary,
     onPrimaryContainer = Color.White,
-    
-    secondary = Secondary,
+
+    secondary = Color(0xFF8B9DC3),
     onSecondary = Color.Black,
     secondaryContainer = SecondaryVariant,
     onSecondaryContainer = Color.White,
-    
+
     tertiary = Info,
     onTertiary = Color.White,
-    
+
     background = BackgroundDark,
-    onBackground = Color.White,
-    
+    onBackground = Color(0xFFE6E1D8),
+
     surface = SurfaceDark,
-    onSurface = Color.White,
+    onSurface = Color(0xFFE6E1D8),
     surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = TextDisabled,
-    
+    onSurfaceVariant = Color(0xFF9E9E9E),
+
     error = Error,
     onError = Color.White,
-    
+
     outline = DividerDark,
     outlineVariant = TextDisabled
 )
@@ -90,7 +90,7 @@ fun KhabarExpressTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-    
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -99,7 +99,7 @@ fun KhabarExpressTheme(
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
-    
+
     // Setup system UI controller for status and navigation bars
     val systemUiController = rememberSystemUiController()
     SideEffect {

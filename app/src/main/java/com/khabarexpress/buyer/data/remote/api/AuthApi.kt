@@ -5,6 +5,9 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface AuthApi {
+    @POST("auth/phone-login")
+    suspend fun phoneLogin(@Body request: PhoneRequest): Response<AuthResponse>
+
     @POST("auth/send-otp")
     suspend fun sendOtp(@Body request: PhoneRequest): Response<OtpResponse>
     

@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.Flow
 interface AuthRepository {
     
     /**
+     * Seamless phone-only login for end users (no verification required)
+     */
+    suspend fun loginWithPhoneOnly(phone: String): Result<User>
+
+    /**
      * Login with email and password
      */
     suspend fun login(email: String, password: String): Result<User>

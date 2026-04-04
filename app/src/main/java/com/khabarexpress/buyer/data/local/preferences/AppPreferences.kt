@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "khabar_lagbe_prefs")
@@ -42,14 +43,10 @@ class AppPreferences(private val context: Context) {
     }
     
     /**
-     * Get authentication token synchronously
+     * Get authentication token synchronously (suspend, read-only)
      */
     suspend fun getAuthTokenSync(): String? {
-        var token: String? = null
-        context.dataStore.edit { preferences ->
-            token = preferences[AUTH_TOKEN]
-        }
-        return token
+        return context.dataStore.data.first()[AUTH_TOKEN]
     }
     
     /**
@@ -65,11 +62,7 @@ class AppPreferences(private val context: Context) {
      * Get refresh token
      */
     suspend fun getRefreshToken(): String? {
-        var token: String? = null
-        context.dataStore.edit { preferences ->
-            token = preferences[REFRESH_TOKEN]
-        }
-        return token
+        return context.dataStore.data.first()[REFRESH_TOKEN]
     }
     
     /**
@@ -85,11 +78,7 @@ class AppPreferences(private val context: Context) {
      * Get user ID
      */
     suspend fun getUserId(): String? {
-        var userId: String? = null
-        context.dataStore.edit { preferences ->
-            userId = preferences[USER_ID]
-        }
-        return userId
+        return context.dataStore.data.first()[USER_ID]
     }
     
     /**
