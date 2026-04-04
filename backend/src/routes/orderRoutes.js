@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const orderController = require('../controllers/orderController');
-const { auth } = require('../middleware/auth');
+const { auth, restaurantAuth } = require('../middleware/auth');
 const validate = require('../middleware/validator');
 
 // All order routes require authentication
@@ -24,6 +24,28 @@ router.post('/',
 
 // Get user orders
 router.get('/', orderController.getUserOrders);
+
+// Restaurant order management routes
+router.get('/restaurant/my', restaurantAuth, orderController.getRestaurantOrders);
+router.patch('/:id/accept', restaurantAuth, orderController.acceptOrder);
+router.patch('/:id/reject',
+  restaurantAuth,
+  [
+    body('reason').optional().isString().withMessage('Reason must be a string'),
+  ],
+  validate,
+  orderController.rejectOrder
+);
+router.patch('/:id/status',
+  restaurantAuth,
+  [
+    body('status')
+      .isIn(['preparing', 'ready', 'picked_up'])
+      .withMessage('Invalid status'),
+  ],
+  validate,
+  orderController.updateOrderStatus
+);
 
 // Get order by ID
 router.get('/:id', orderController.getOrderById);
