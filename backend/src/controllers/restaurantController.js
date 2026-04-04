@@ -16,7 +16,7 @@ exports.getRestaurants = async (req, res, next) => {
       sortBy = 'rating' // rating, deliveryTime, distance
     } = req.query;
 
-    const query = { isActive: true };
+    const query = { isActive: true, approvalStatus: 'approved' };
 
     // Search by name or cuisine
     if (search) {
@@ -125,6 +125,7 @@ exports.getFeaturedRestaurants = async (req, res, next) => {
   try {
     const restaurants = await Restaurant.find({ 
       isActive: true, 
+      approvalStatus: 'approved',
       featured: true 
     })
       .sort({ rating: -1 })
@@ -155,6 +156,7 @@ exports.searchAll = async (req, res, next) => {
     // Search restaurants
     const restaurants = await Restaurant.find({
       isActive: true,
+      approvalStatus: 'approved',
       $or: [
         { name: { $regex: searchQuery, $options: 'i' } },
         { nameBn: { $regex: searchQuery, $options: 'i' } },

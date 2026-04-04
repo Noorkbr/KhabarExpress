@@ -5,6 +5,17 @@ const nagadService = require('../services/nagadService');
 const sslCommerzService = require('../services/sslCommerzService');
 const { getIO } = require('../config/socket');
 
+// Default admin profit rate (5%)
+const ADMIN_PROFIT_RATE = parseFloat(process.env.ADMIN_PROFIT_RATE || '5');
+
+// Calculate and store admin profit on a payment
+const applyAdminProfit = (payment) => {
+  const rate = ADMIN_PROFIT_RATE;
+  payment.adminProfitRate = rate;
+  payment.adminProfit = Math.round(payment.amount * (rate / 100));
+  payment.restaurantPayout = payment.amount - payment.adminProfit;
+};
+
 // Create payment
 exports.createPayment = async (req, res, next) => {
   try {
@@ -164,6 +175,7 @@ exports.bkashCallback = async (req, res, next) => {
         payment.status = 'success';
         payment.gateway.transactionId = executeResponse.trxID;
         payment.gatewayResponse = executeResponse;
+        applyAdminProfit(payment);
 
         // Update order
         const order = await Order.findById(payment.order);
@@ -225,6 +237,7 @@ exports.nagadCallback = async (req, res, next) => {
         payment.status = 'success';
         payment.gateway.transactionId = verifyResponse.issuerPaymentRefNo;
         payment.gatewayResponse = verifyResponse;
+        applyAdminProfit(payment);
 
         // Update order
         const order = await Order.findById(payment.order);
@@ -286,6 +299,7 @@ exports.sslCommerzCallback = async (req, res, next) => {
         payment.status = 'success';
         payment.gateway.transactionId = validateResponse.tran_id;
         payment.gatewayResponse = validateResponse;
+        applyAdminProfit(payment);
 
         // Update order
         const order = await Order.findById(payment.order);

@@ -32,6 +32,19 @@ const paymentSchema = new mongoose.Schema({
     sessionKey: String,
   },
   gatewayResponse: mongoose.Schema.Types.Mixed,
+  // Admin profit tracking (5% by default)
+  adminProfitRate: {
+    type: Number,
+    default: 5, // percentage
+  },
+  adminProfit: {
+    type: Number,
+    default: 0, // in BDT paisa
+  },
+  restaurantPayout: {
+    type: Number,
+    default: 0, // amount after admin profit deduction, in BDT paisa
+  },
   refund: {
     amount: Number,
     reason: String,

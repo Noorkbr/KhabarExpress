@@ -177,4 +177,20 @@ const riderAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, adminAuth, restaurantAuth, riderAuth };
+module.exports = {
+  auth,
+  adminAuth,
+  restaurantAuth,
+  riderAuth,
+  // Aliases used by admin/payment routes
+  protect: auth,
+  authorize: (...roles) => (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. Required role(s): ${roles.join(', ')}`,
+      });
+    }
+    next();
+  },
+};
