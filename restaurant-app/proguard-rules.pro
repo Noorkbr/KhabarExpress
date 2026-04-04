@@ -20,23 +20,13 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-# Mapbox SDK ProGuard Rules
-# Keep Mapbox classes and native methods
--keep class com.mapbox.** { *; }
--dontwarn com.mapbox.**
-
-# Keep annotations for Mapbox
+# ==========================================
+# Retrofit & OkHttp
+# ==========================================
 -keepattributes Signature
 -keepattributes *Annotation*
 -keepattributes EnclosingMethod
 -keepattributes InnerClasses
-
-# Keep Mapbox native libraries
--keep class com.mapbox.common.** { *; }
--keep class com.mapbox.geojson.** { *; }
--keep class com.mapbox.turf.** { *; }
-
-# Retrofit and OkHttp (used by Mapbox)
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeInvisibleAnnotations
 -keepattributes RuntimeVisibleParameterAnnotations
@@ -46,11 +36,17 @@
     @retrofit2.http.* <methods>;
 }
 
+# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
 # OkHttp platform used only on JVM and when Conscrypt dependency is available.
 -dontwarn okhttp3.internal.platform.ConscryptPlatform
 -dontwarn org.conscrypt.ConscryptHostnameVerifier
 
-# Kotlin serialization
+# ==========================================
+# Kotlin Serialization
+# ==========================================
 -dontnote kotlinx.serialization.AnnotationsKt
 
 -keepclassmembers class kotlinx.serialization.json.** {
@@ -60,11 +56,9 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
--keep,allowobfuscation,allowshrinking interface retrofit2.Call
--keep,allowobfuscation,allowshrinking class retrofit2.Response
-
-# Hilt
+# ==========================================
+# Hilt / Dagger Dependency Injection
+# ==========================================
 -dontwarn javax.annotation.**
 -keepclassmembers,allowobfuscation class * {
     @javax.inject.* *;
@@ -75,3 +69,17 @@
 -keep class dagger.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.internal.GeneratedComponent
+
+# ==========================================
+# Firebase
+# ==========================================
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# ==========================================
+# Socket.IO Client
+# ==========================================
+-keep class io.socket.** { *; }
+-dontwarn io.socket.**
