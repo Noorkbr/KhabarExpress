@@ -18,7 +18,8 @@ data class Restaurant(
     val longitude: Double,
     val address: String,
     val tags: List<String> = emptyList(), // Featured, Popular, New, etc.
-    val categories: List<MenuCategory> = emptyList()
+    val categories: List<MenuCategory> = emptyList(),
+    val approvalStatus: String = "approved" // "pending", "approved", "rejected"
 )
 
 data class MenuCategory(
