@@ -71,11 +71,12 @@
 -keep class * extends dagger.hilt.internal.GeneratedComponent
 
 # ==========================================
-# Firebase
+# Firebase & Google Play Services
 # ==========================================
 -keep class com.google.firebase.** { *; }
 -dontwarn com.google.firebase.**
--keep class com.google.android.gms.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
 -dontwarn com.google.android.gms.**
 
 # ==========================================

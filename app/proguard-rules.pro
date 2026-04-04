@@ -77,7 +77,7 @@
 -dontwarn io.socket.**
 
 # ==========================================
-# Google Play Services
+# Google Play Services (Location)
 # ==========================================
--keep class com.google.android.gms.** { *; }
+-keep class com.google.android.gms.location.** { *; }
 -dontwarn com.google.android.gms.**
