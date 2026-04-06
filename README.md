@@ -167,6 +167,14 @@ KhabarExpress/
 
 The Node.js backend is in `/backend`. See [backend/README.md](backend/README.md) for setup instructions.
 
+**Railway Deployment:**
+1. Set the Railway service root directory to `backend`
+2. Add required environment variables (`PORT`, `NODE_ENV`, `DATABASE_URL`, `JWT_SECRET`, `REFRESH_TOKEN_SECRET`)
+3. Deploy — Railway will detect the Dockerfile and build automatically
+4. Verify: `curl https://<your-railway-url>/health`
+
+See [backend/README.md](backend/README.md) for full Railway deployment details.
+
 **Text-Based Address System:**
 - Buyers type their delivery address (e.g., "কাশিমপুর, গাজীপুর")
 - No geocoding API required
