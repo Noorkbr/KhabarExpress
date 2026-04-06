@@ -3,7 +3,9 @@ package com.khabarexpress.buyer.presentation.profile.addresses
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Address
-import com.khabarexpress.buyer.domain.repository.UserRepository
+import com.khabarexpress.buyer.domain.usecase.profile.DeleteAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.GetAddressesUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.SetDefaultAddressUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -11,7 +13,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AddressViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val getAddressesUseCase: GetAddressesUseCase,
+    private val deleteAddressUseCase: DeleteAddressUseCase,
+    private val setDefaultAddressUseCase: SetDefaultAddressUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AddressUiState>(AddressUiState.Loading)
@@ -27,7 +31,7 @@ class AddressViewModel @Inject constructor(
     fun loadAddresses() {
         viewModelScope.launch {
             _uiState.value = AddressUiState.Loading
-            userRepository.getUserAddresses()
+            getAddressesUseCase()
                 .catch { error ->
                     _uiState.value = AddressUiState.Error(
                         error.message ?: "Failed to load addresses"
@@ -46,7 +50,7 @@ class AddressViewModel @Inject constructor(
     fun deleteAddress(addressId: String) {
         viewModelScope.launch {
             _addressActionState.value = AddressActionState.Loading
-            userRepository.deleteAddress(addressId)
+            deleteAddressUseCase(addressId)
                 .onSuccess {
                     _addressActionState.value = AddressActionState.Success("Address deleted")
                 }
@@ -61,7 +65,7 @@ class AddressViewModel @Inject constructor(
     fun setDefaultAddress(addressId: String) {
         viewModelScope.launch {
             _addressActionState.value = AddressActionState.Loading
-            userRepository.setDefaultAddress(addressId)
+            setDefaultAddressUseCase(addressId)
                 .onSuccess {
                     _addressActionState.value = AddressActionState.Success("Default address updated")
                 }

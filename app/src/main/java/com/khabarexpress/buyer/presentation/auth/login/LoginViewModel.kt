@@ -3,7 +3,11 @@ package com.khabarexpress.buyer.presentation.auth.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.User
-import com.khabarexpress.buyer.domain.repository.AuthRepository
+import com.khabarexpress.buyer.domain.usecase.auth.CheckAuthStatusUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.LoginWithCredentialsUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.LoginWithOtpUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.LoginWithPhoneUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.SendOtpUseCase
 import com.khabarexpress.buyer.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +22,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val loginWithPhoneUseCase: LoginWithPhoneUseCase,
+    private val loginWithCredentialsUseCase: LoginWithCredentialsUseCase,
+    private val loginWithOtpUseCase: LoginWithOtpUseCase,
+    private val sendOtpUseCase: SendOtpUseCase,
+    private val checkAuthStatusUseCase: CheckAuthStatusUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -45,7 +53,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            authRepository.loginWithPhoneOnly(phone)
+            loginWithPhoneUseCase(phone)
                 .onSuccess { user ->
                     _uiState.value = LoginUiState.Success(user)
                 }
@@ -78,7 +86,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            authRepository.login(email, password)
+            loginWithCredentialsUseCase(email, password)
                 .onSuccess { user ->
                     _uiState.value = LoginUiState.Success(user)
                 }
@@ -106,7 +114,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            authRepository.loginWithPhone(phone, otp)
+            loginWithOtpUseCase(phone, otp)
                 .onSuccess { user ->
                     _uiState.value = LoginUiState.Success(user)
                 }
@@ -134,7 +142,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            authRepository.sendOtp(phone)
+            sendOtpUseCase(phone)
                 .onSuccess {
                     _uiState.value = LoginUiState.OtpSent
                 }
@@ -151,8 +159,8 @@ class LoginViewModel @Inject constructor(
      */
     fun checkAuthStatus() {
         viewModelScope.launch {
-            if (authRepository.isAuthenticated()) {
-                authRepository.getCurrentUser().collect { user ->
+            if (checkAuthStatusUseCase.isAuthenticated()) {
+                checkAuthStatusUseCase.getCurrentUser().collect { user ->
                     user?.let {
                         _uiState.value = LoginUiState.Success(it)
                     }

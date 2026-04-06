@@ -9,12 +9,11 @@ import com.khabarexpress.buyer.domain.model.PaymentStatus
 import com.khabarexpress.buyer.domain.model.PromoCode
 import com.khabarexpress.buyer.domain.model.Restaurant
 import com.khabarexpress.buyer.domain.model.User
-import com.khabarexpress.buyer.domain.repository.AuthRepository
-import com.khabarexpress.buyer.domain.repository.CartRepository
-import com.khabarexpress.buyer.domain.repository.OrderRepository
 import com.khabarexpress.buyer.domain.usecase.auth.CheckAuthStatusUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.LoginWithCredentialsUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.LoginWithOtpUseCase
 import com.khabarexpress.buyer.domain.usecase.auth.LoginWithPhoneUseCase
-import com.khabarexpress.buyer.domain.usecase.auth.LogoutUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.SendOtpUseCase
 import com.khabarexpress.buyer.domain.usecase.cart.ApplyPromoCodeUseCase
 import com.khabarexpress.buyer.domain.usecase.cart.ClearCartUseCase
 import com.khabarexpress.buyer.domain.usecase.cart.GetCartUseCase
@@ -118,10 +117,17 @@ class ViewModelTest {
 
     @Test
     fun `LoginViewModel initial state is Idle`() {
-        val authRepository = mockk<AuthRepository>(relaxed = true)
-        coEvery { authRepository.isAuthenticated() } returns false
+        val loginWithPhoneUseCase = mockk<LoginWithPhoneUseCase>(relaxed = true)
+        val loginWithCredentialsUseCase = mockk<LoginWithCredentialsUseCase>(relaxed = true)
+        val loginWithOtpUseCase = mockk<LoginWithOtpUseCase>(relaxed = true)
+        val sendOtpUseCase = mockk<SendOtpUseCase>(relaxed = true)
+        val checkAuthStatusUseCase = mockk<CheckAuthStatusUseCase>(relaxed = true)
+        coEvery { checkAuthStatusUseCase.isAuthenticated() } returns false
 
-        val viewModel = LoginViewModel(authRepository)
+        val viewModel = LoginViewModel(
+            loginWithPhoneUseCase, loginWithCredentialsUseCase,
+            loginWithOtpUseCase, sendOtpUseCase, checkAuthStatusUseCase
+        )
 
         // Initially idle (checkAuthStatus may run but no authenticated user)
         assertTrue(viewModel.uiState.value is com.khabarexpress.buyer.presentation.auth.login.LoginUiState.Idle ||
@@ -130,11 +136,18 @@ class ViewModelTest {
 
     @Test
     fun `LoginViewModel loginWithPhoneOnly emits Success on valid phone`() = runTest {
-        val authRepository = mockk<AuthRepository>(relaxed = true)
-        coEvery { authRepository.isAuthenticated() } returns false
-        coEvery { authRepository.loginWithPhoneOnly("01712345678") } returns Result.success(testUser)
+        val loginWithPhoneUseCase = mockk<LoginWithPhoneUseCase>(relaxed = true)
+        val loginWithCredentialsUseCase = mockk<LoginWithCredentialsUseCase>(relaxed = true)
+        val loginWithOtpUseCase = mockk<LoginWithOtpUseCase>(relaxed = true)
+        val sendOtpUseCase = mockk<SendOtpUseCase>(relaxed = true)
+        val checkAuthStatusUseCase = mockk<CheckAuthStatusUseCase>(relaxed = true)
+        coEvery { checkAuthStatusUseCase.isAuthenticated() } returns false
+        coEvery { loginWithPhoneUseCase("01712345678") } returns Result.success(testUser)
 
-        val viewModel = LoginViewModel(authRepository)
+        val viewModel = LoginViewModel(
+            loginWithPhoneUseCase, loginWithCredentialsUseCase,
+            loginWithOtpUseCase, sendOtpUseCase, checkAuthStatusUseCase
+        )
         viewModel.loginWithPhoneOnly("01712345678")
         advanceUntilIdle()
 
@@ -143,10 +156,17 @@ class ViewModelTest {
 
     @Test
     fun `LoginViewModel loginWithPhoneOnly emits Error on blank phone`() = runTest {
-        val authRepository = mockk<AuthRepository>(relaxed = true)
-        coEvery { authRepository.isAuthenticated() } returns false
+        val loginWithPhoneUseCase = mockk<LoginWithPhoneUseCase>(relaxed = true)
+        val loginWithCredentialsUseCase = mockk<LoginWithCredentialsUseCase>(relaxed = true)
+        val loginWithOtpUseCase = mockk<LoginWithOtpUseCase>(relaxed = true)
+        val sendOtpUseCase = mockk<SendOtpUseCase>(relaxed = true)
+        val checkAuthStatusUseCase = mockk<CheckAuthStatusUseCase>(relaxed = true)
+        coEvery { checkAuthStatusUseCase.isAuthenticated() } returns false
 
-        val viewModel = LoginViewModel(authRepository)
+        val viewModel = LoginViewModel(
+            loginWithPhoneUseCase, loginWithCredentialsUseCase,
+            loginWithOtpUseCase, sendOtpUseCase, checkAuthStatusUseCase
+        )
         viewModel.loginWithPhoneOnly("")
         advanceUntilIdle()
 
@@ -155,10 +175,17 @@ class ViewModelTest {
 
     @Test
     fun `LoginViewModel loginWithPhoneOnly emits Error on invalid phone format`() = runTest {
-        val authRepository = mockk<AuthRepository>(relaxed = true)
-        coEvery { authRepository.isAuthenticated() } returns false
+        val loginWithPhoneUseCase = mockk<LoginWithPhoneUseCase>(relaxed = true)
+        val loginWithCredentialsUseCase = mockk<LoginWithCredentialsUseCase>(relaxed = true)
+        val loginWithOtpUseCase = mockk<LoginWithOtpUseCase>(relaxed = true)
+        val sendOtpUseCase = mockk<SendOtpUseCase>(relaxed = true)
+        val checkAuthStatusUseCase = mockk<CheckAuthStatusUseCase>(relaxed = true)
+        coEvery { checkAuthStatusUseCase.isAuthenticated() } returns false
 
-        val viewModel = LoginViewModel(authRepository)
+        val viewModel = LoginViewModel(
+            loginWithPhoneUseCase, loginWithCredentialsUseCase,
+            loginWithOtpUseCase, sendOtpUseCase, checkAuthStatusUseCase
+        )
         viewModel.loginWithPhoneOnly("12345")
         advanceUntilIdle()
 
@@ -168,11 +195,18 @@ class ViewModelTest {
 
     @Test
     fun `LoginViewModel resetState sets state to Idle`() = runTest {
-        val authRepository = mockk<AuthRepository>(relaxed = true)
-        coEvery { authRepository.isAuthenticated() } returns false
-        coEvery { authRepository.loginWithPhoneOnly(any()) } returns Result.failure(Exception("error"))
+        val loginWithPhoneUseCase = mockk<LoginWithPhoneUseCase>(relaxed = true)
+        val loginWithCredentialsUseCase = mockk<LoginWithCredentialsUseCase>(relaxed = true)
+        val loginWithOtpUseCase = mockk<LoginWithOtpUseCase>(relaxed = true)
+        val sendOtpUseCase = mockk<SendOtpUseCase>(relaxed = true)
+        val checkAuthStatusUseCase = mockk<CheckAuthStatusUseCase>(relaxed = true)
+        coEvery { checkAuthStatusUseCase.isAuthenticated() } returns false
+        coEvery { loginWithPhoneUseCase(any()) } returns Result.failure(Exception("error"))
 
-        val viewModel = LoginViewModel(authRepository)
+        val viewModel = LoginViewModel(
+            loginWithPhoneUseCase, loginWithCredentialsUseCase,
+            loginWithOtpUseCase, sendOtpUseCase, checkAuthStatusUseCase
+        )
         viewModel.loginWithPhoneOnly("01712345678")
         advanceUntilIdle()
 
@@ -184,10 +218,18 @@ class ViewModelTest {
 
     @Test
     fun `CartViewModel initial state is Loading`() {
-        val cartRepository = mockk<CartRepository>(relaxed = true)
-        every { cartRepository.getCart() } returns flowOf(null)
+        val getCartUseCase = mockk<GetCartUseCase>(relaxed = true)
+        val updateCartItemQuantityUseCase = mockk<UpdateCartItemQuantityUseCase>(relaxed = true)
+        val removeCartItemUseCase = mockk<RemoveCartItemUseCase>(relaxed = true)
+        val clearCartUseCase = mockk<ClearCartUseCase>(relaxed = true)
+        val applyPromoCodeUseCase = mockk<ApplyPromoCodeUseCase>(relaxed = true)
+        val removePromoCodeUseCase = mockk<RemovePromoCodeUseCase>(relaxed = true)
+        every { getCartUseCase() } returns flowOf(null)
 
-        val viewModel = CartViewModel(cartRepository)
+        val viewModel = CartViewModel(
+            getCartUseCase, updateCartItemQuantityUseCase, removeCartItemUseCase,
+            clearCartUseCase, applyPromoCodeUseCase, removePromoCodeUseCase
+        )
 
         // Initial state before coroutines run is Loading
         assertTrue(viewModel.uiState.value is com.khabarexpress.buyer.presentation.cart.CartUiState.Loading ||
@@ -196,10 +238,18 @@ class ViewModelTest {
 
     @Test
     fun `CartViewModel shows Empty when cart has no items`() = runTest {
-        val cartRepository = mockk<CartRepository>(relaxed = true)
-        every { cartRepository.getCart() } returns flowOf(null)
+        val getCartUseCase = mockk<GetCartUseCase>(relaxed = true)
+        val updateCartItemQuantityUseCase = mockk<UpdateCartItemQuantityUseCase>(relaxed = true)
+        val removeCartItemUseCase = mockk<RemoveCartItemUseCase>(relaxed = true)
+        val clearCartUseCase = mockk<ClearCartUseCase>(relaxed = true)
+        val applyPromoCodeUseCase = mockk<ApplyPromoCodeUseCase>(relaxed = true)
+        val removePromoCodeUseCase = mockk<RemovePromoCodeUseCase>(relaxed = true)
+        every { getCartUseCase() } returns flowOf(null)
 
-        val viewModel = CartViewModel(cartRepository)
+        val viewModel = CartViewModel(
+            getCartUseCase, updateCartItemQuantityUseCase, removeCartItemUseCase,
+            clearCartUseCase, applyPromoCodeUseCase, removePromoCodeUseCase
+        )
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is com.khabarexpress.buyer.presentation.cart.CartUiState.Empty)
@@ -207,11 +257,19 @@ class ViewModelTest {
 
     @Test
     fun `CartViewModel shows Empty for cart with empty items`() = runTest {
-        val cartRepository = mockk<CartRepository>(relaxed = true)
+        val getCartUseCase = mockk<GetCartUseCase>(relaxed = true)
+        val updateCartItemQuantityUseCase = mockk<UpdateCartItemQuantityUseCase>(relaxed = true)
+        val removeCartItemUseCase = mockk<RemoveCartItemUseCase>(relaxed = true)
+        val clearCartUseCase = mockk<ClearCartUseCase>(relaxed = true)
+        val applyPromoCodeUseCase = mockk<ApplyPromoCodeUseCase>(relaxed = true)
+        val removePromoCodeUseCase = mockk<RemovePromoCodeUseCase>(relaxed = true)
         val emptyCart = Cart(restaurantId = "rest-1", items = emptyList())
-        every { cartRepository.getCart() } returns flowOf(emptyCart)
+        every { getCartUseCase() } returns flowOf(emptyCart)
 
-        val viewModel = CartViewModel(cartRepository)
+        val viewModel = CartViewModel(
+            getCartUseCase, updateCartItemQuantityUseCase, removeCartItemUseCase,
+            clearCartUseCase, applyPromoCodeUseCase, removePromoCodeUseCase
+        )
         advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value is com.khabarexpress.buyer.presentation.cart.CartUiState.Empty)
@@ -221,11 +279,11 @@ class ViewModelTest {
 
     @Test
     fun `OrderHistoryViewModel loads orders on init`() = runTest {
-        val orderRepository = mockk<OrderRepository>(relaxed = true)
+        val getUserOrdersUseCase = mockk<GetUserOrdersUseCase>(relaxed = true)
         val orders = listOf(testOrder)
-        every { orderRepository.getUserOrders() } returns flowOf(orders)
+        every { getUserOrdersUseCase() } returns flowOf(orders)
 
-        val viewModel = OrderHistoryViewModel(orderRepository)
+        val viewModel = OrderHistoryViewModel(getUserOrdersUseCase)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -238,10 +296,10 @@ class ViewModelTest {
 
     @Test
     fun `OrderHistoryViewModel shows empty state when no orders`() = runTest {
-        val orderRepository = mockk<OrderRepository>(relaxed = true)
-        every { orderRepository.getUserOrders() } returns flowOf(emptyList())
+        val getUserOrdersUseCase = mockk<GetUserOrdersUseCase>(relaxed = true)
+        every { getUserOrdersUseCase() } returns flowOf(emptyList())
 
-        val viewModel = OrderHistoryViewModel(orderRepository)
+        val viewModel = OrderHistoryViewModel(getUserOrdersUseCase)
         advanceUntilIdle()
 
         val state = viewModel.uiState.value

@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.CartItem
 import com.khabarexpress.buyer.domain.model.MenuItem
 import com.khabarexpress.buyer.domain.model.Restaurant
-import com.khabarexpress.buyer.domain.repository.CartRepository
-import com.khabarexpress.buyer.domain.repository.RestaurantRepository
+import com.khabarexpress.buyer.domain.usecase.cart.GetCartUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.GetRestaurantByIdUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.GetFavoriteRestaurantsUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +22,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RestaurantViewModel @Inject constructor(
-    private val restaurantRepository: RestaurantRepository,
-    private val cartRepository: CartRepository
+    private val getRestaurantByIdUseCase: GetRestaurantByIdUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
+    private val getFavoriteRestaurantsUseCase: GetFavoriteRestaurantsUseCase,
+    private val getCartUseCase: GetCartUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RestaurantDetailUiState>(RestaurantDetailUiState.Loading)
@@ -36,7 +40,7 @@ class RestaurantViewModel @Inject constructor(
     fun loadRestaurantDetails(restaurantId: String) {
         viewModelScope.launch {
             _uiState.value = RestaurantDetailUiState.Loading
-            restaurantRepository.getRestaurantById(restaurantId)
+            getRestaurantByIdUseCase(restaurantId)
                 .onSuccess { restaurant ->
                     _uiState.value = RestaurantDetailUiState.Success(
                         restaurant = restaurant,
@@ -67,7 +71,7 @@ class RestaurantViewModel @Inject constructor(
     fun addToCart(cartItem: CartItem) {
         viewModelScope.launch {
             _addToCartState.value = AddToCartState.Loading
-            cartRepository.addItem(cartItem)
+            getCartUseCase.addItem(cartItem)
                 .onSuccess {
                     _addToCartState.value = AddToCartState.Success
                 }
@@ -84,7 +88,7 @@ class RestaurantViewModel @Inject constructor(
      */
     fun checkFavoriteStatus(restaurantId: String) {
         viewModelScope.launch {
-            val isFavorite = restaurantRepository.isFavorite(restaurantId)
+            val isFavorite = getFavoriteRestaurantsUseCase.isFavorite(restaurantId)
             val currentState = _uiState.value
             if (currentState is RestaurantDetailUiState.Success) {
                 _uiState.value = currentState.copy(isFavorite = isFavorite)
@@ -97,7 +101,7 @@ class RestaurantViewModel @Inject constructor(
      */
     fun toggleFavorite(restaurantId: String) {
         viewModelScope.launch {
-            restaurantRepository.toggleFavorite(restaurantId)
+            toggleFavoriteUseCase(restaurantId)
                 .onSuccess { isFavorite ->
                     val currentState = _uiState.value
                     if (currentState is RestaurantDetailUiState.Success) {

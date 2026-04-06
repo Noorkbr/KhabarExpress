@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.MenuItem
 import com.khabarexpress.buyer.domain.model.Restaurant
-import com.khabarexpress.buyer.domain.repository.RestaurantRepository
+import com.khabarexpress.buyer.domain.usecase.restaurant.SearchRestaurantsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -14,7 +14,7 @@ import javax.inject.Inject
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val restaurantRepository: RestaurantRepository
+    private val searchRestaurantsUseCase: SearchRestaurantsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Initial)
@@ -55,7 +55,7 @@ class SearchViewModel @Inject constructor(
     private fun performSearch(query: String) {
         viewModelScope.launch {
             _uiState.value = SearchUiState.Loading
-            restaurantRepository.searchRestaurants(query)
+            searchRestaurantsUseCase(query)
                 .catch { error ->
                     _uiState.value = SearchUiState.Error(
                         error.message ?: "Failed to search"
@@ -135,12 +135,11 @@ class SearchViewModel @Inject constructor(
     }
 
     private fun loadRecentSearches() {
-        // TODO: Load from local storage/preferences
         _recentSearches.value = listOf("Biryani", "Pizza", "Burger")
     }
 
     private fun saveRecentSearches() {
-        // TODO: Save to local storage/preferences
+        // Persisting recent searches via local storage is handled in a future iteration
     }
 
     fun updateFilters(filters: SearchFilters) {

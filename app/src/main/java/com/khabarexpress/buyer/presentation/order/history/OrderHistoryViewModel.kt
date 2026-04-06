@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Order
 import com.khabarexpress.buyer.domain.model.OrderStatus
-import com.khabarexpress.buyer.domain.repository.OrderRepository
+import com.khabarexpress.buyer.domain.usecase.order.GetUserOrdersUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class OrderHistoryViewModel @Inject constructor(
-    private val orderRepository: OrderRepository
+    private val getUserOrdersUseCase: GetUserOrdersUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<OrderHistoryUiState>(OrderHistoryUiState.Loading)
@@ -28,7 +28,7 @@ class OrderHistoryViewModel @Inject constructor(
     fun loadOrders() {
         viewModelScope.launch {
             _uiState.value = OrderHistoryUiState.Loading
-            orderRepository.getUserOrders()
+            getUserOrdersUseCase()
                 .catch { error ->
                     _uiState.value = OrderHistoryUiState.Error(
                         error.message ?: "Failed to load orders"
@@ -52,7 +52,7 @@ class OrderHistoryViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            orderRepository.getUserOrders()
+            getUserOrdersUseCase()
                 .catch { error ->
                     _uiState.value = OrderHistoryUiState.Error(
                         error.message ?: "Failed to refresh orders"

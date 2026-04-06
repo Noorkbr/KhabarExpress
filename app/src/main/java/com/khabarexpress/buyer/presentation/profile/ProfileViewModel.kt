@@ -5,9 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Address
 import com.khabarexpress.buyer.domain.model.Order
 import com.khabarexpress.buyer.domain.model.User
-import com.khabarexpress.buyer.domain.repository.AuthRepository
-import com.khabarexpress.buyer.domain.repository.OrderRepository
-import com.khabarexpress.buyer.domain.repository.UserRepository
+import com.khabarexpress.buyer.domain.usecase.auth.LogoutUseCase
+import com.khabarexpress.buyer.domain.usecase.order.GetUserOrdersUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.AddAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.DeleteAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.GetAddressesUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.GetProfileUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.SetDefaultAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.UpdateAvatarUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.UpdateProfileUseCase
 import com.khabarexpress.buyer.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,9 +29,15 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val userRepository: UserRepository,
-    private val authRepository: AuthRepository,
-    private val orderRepository: OrderRepository
+    private val getProfileUseCase: GetProfileUseCase,
+    private val updateProfileUseCase: UpdateProfileUseCase,
+    private val updateAvatarUseCase: UpdateAvatarUseCase,
+    private val getAddressesUseCase: GetAddressesUseCase,
+    private val addAddressUseCase: AddAddressUseCase,
+    private val deleteAddressUseCase: DeleteAddressUseCase,
+    private val setDefaultAddressUseCase: SetDefaultAddressUseCase,
+    private val logoutUseCase: LogoutUseCase,
+    private val getUserOrdersUseCase: GetUserOrdersUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
@@ -50,7 +62,7 @@ class ProfileViewModel @Inject constructor(
             
             try {
                 // Collect user profile
-                userRepository.getUserProfile()
+                getProfileUseCase()
                     .catch { error ->
                         _uiState.value = ProfileUiState.Error(
                             error.message ?: "Failed to load profile"
@@ -61,7 +73,7 @@ class ProfileViewModel @Inject constructor(
                             _uiState.value = ProfileUiState.Error("User not found")
                         } else {
                             // Collect addresses
-                            userRepository.getUserAddresses()
+                            getAddressesUseCase()
                                 .catch { error ->
                                     // Show profile even if addresses fail
                                     _uiState.value = ProfileUiState.Success(
@@ -72,7 +84,7 @@ class ProfileViewModel @Inject constructor(
                                 }
                                 .collect { addresses ->
                                     // Collect recent orders
-                                    orderRepository.getUserOrders()
+                                    getUserOrdersUseCase()
                                         .catch { error ->
                                             // Show profile even if orders fail
                                             _uiState.value = ProfileUiState.Success(
@@ -116,7 +128,7 @@ class ProfileViewModel @Inject constructor(
 
         viewModelScope.launch {
             _updateProfileState.value = UpdateProfileState.Loading
-            userRepository.updateProfile(name, phone, profileImageUrl)
+            updateProfileUseCase(name, phone, profileImageUrl)
                 .onSuccess { updatedUser ->
                     _updateProfileState.value = UpdateProfileState.Success
                     // Reload profile to show updated data
@@ -136,7 +148,7 @@ class ProfileViewModel @Inject constructor(
     fun uploadProfileImage(imagePath: String) {
         viewModelScope.launch {
             _updateProfileState.value = UpdateProfileState.Loading
-            userRepository.uploadProfileImage(imagePath)
+            updateAvatarUseCase(imagePath)
                 .onSuccess { imageUrl ->
                     // Update profile with new image URL
                     updateProfile(null, null, imageUrl)
@@ -154,7 +166,7 @@ class ProfileViewModel @Inject constructor(
      */
     fun loadAddresses() {
         viewModelScope.launch {
-            userRepository.getUserAddresses()
+            getAddressesUseCase()
                 .catch { error ->
                     _uiState.value = ProfileUiState.Error(
                         error.message ?: "Failed to load addresses"
@@ -174,7 +186,7 @@ class ProfileViewModel @Inject constructor(
      */
     fun addAddress(address: Address) {
         viewModelScope.launch {
-            userRepository.addAddress(address)
+            addAddressUseCase(address)
                 .onSuccess {
                     loadAddresses()
                 }
@@ -191,7 +203,7 @@ class ProfileViewModel @Inject constructor(
      */
     fun deleteAddress(addressId: String) {
         viewModelScope.launch {
-            userRepository.deleteAddress(addressId)
+            deleteAddressUseCase(addressId)
                 .onSuccess {
                     loadAddresses()
                 }
@@ -208,7 +220,7 @@ class ProfileViewModel @Inject constructor(
      */
     fun setDefaultAddress(addressId: String) {
         viewModelScope.launch {
-            userRepository.setDefaultAddress(addressId)
+            setDefaultAddressUseCase(addressId)
                 .onSuccess {
                     loadAddresses()
                 }
@@ -226,7 +238,7 @@ class ProfileViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             _logoutState.value = LogoutState.Loading
-            authRepository.logout()
+            logoutUseCase()
                 .onSuccess {
                     _logoutState.value = LogoutState.Success
                 }

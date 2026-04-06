@@ -3,7 +3,8 @@ package com.khabarexpress.buyer.presentation.auth.register
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.User
-import com.khabarexpress.buyer.domain.repository.AuthRepository
+import com.khabarexpress.buyer.domain.usecase.auth.RegisterUseCase
+import com.khabarexpress.buyer.domain.usecase.auth.SendOtpUseCase
 import com.khabarexpress.buyer.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val authRepository: AuthRepository
+    private val registerUseCase: RegisterUseCase,
+    private val sendOtpUseCase: SendOtpUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<RegisterUiState>(RegisterUiState.Idle)
@@ -37,7 +39,7 @@ class RegisterViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = RegisterUiState.Loading
-            authRepository.register(name, email, phone, password)
+            registerUseCase(name, email, phone, password)
                 .onSuccess { user ->
                     _uiState.value = RegisterUiState.Success(user)
                 }
@@ -65,7 +67,7 @@ class RegisterViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = RegisterUiState.Loading
-            authRepository.sendOtp(phone)
+            sendOtpUseCase(phone)
                 .onSuccess {
                     _uiState.value = RegisterUiState.OtpSent
                 }
@@ -88,7 +90,7 @@ class RegisterViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = RegisterUiState.Loading
-            authRepository.verifyOtp(phone, otp)
+            registerUseCase.verifyOtp(phone, otp)
                 .onSuccess { isValid ->
                     if (isValid) {
                         _uiState.value = RegisterUiState.OtpVerified

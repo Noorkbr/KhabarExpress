@@ -3,7 +3,8 @@ package com.khabarexpress.buyer.presentation.profile.favorites
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Restaurant
-import com.khabarexpress.buyer.domain.repository.RestaurantRepository
+import com.khabarexpress.buyer.domain.usecase.restaurant.GetFavoriteRestaurantsUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -11,7 +12,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
-    private val restaurantRepository: RestaurantRepository
+    private val getFavoriteRestaurantsUseCase: GetFavoriteRestaurantsUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FavoritesUiState>(FavoritesUiState.Loading)
@@ -27,7 +29,7 @@ class FavoritesViewModel @Inject constructor(
     fun loadFavorites() {
         viewModelScope.launch {
             _uiState.value = FavoritesUiState.Loading
-            restaurantRepository.getFavoriteRestaurants()
+            getFavoriteRestaurantsUseCase()
                 .catch { error ->
                     _uiState.value = FavoritesUiState.Error(
                         error.message ?: "Failed to load favorites"
@@ -46,7 +48,7 @@ class FavoritesViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _isRefreshing.value = true
-            restaurantRepository.getFavoriteRestaurants()
+            getFavoriteRestaurantsUseCase()
                 .catch { error ->
                     _uiState.value = FavoritesUiState.Error(
                         error.message ?: "Failed to refresh favorites"
@@ -65,7 +67,7 @@ class FavoritesViewModel @Inject constructor(
 
     fun toggleFavorite(restaurantId: String) {
         viewModelScope.launch {
-            restaurantRepository.toggleFavorite(restaurantId)
+            toggleFavoriteUseCase(restaurantId)
                 .onFailure { error ->
                     _uiState.value = FavoritesUiState.Error(
                         error.message ?: "Failed to update favorite"
