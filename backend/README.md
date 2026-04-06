@@ -99,6 +99,47 @@ docker-compose down
 
 The `docker-compose.yml` includes MongoDB, Redis, and the API server.
 
+## Railway Deployment
+
+### 1. Set the root directory
+
+In the Railway service settings, set the **Root Directory** to `backend`.
+
+### 2. Configure environment variables
+
+Add the following variables in the Railway service **Variables** tab:
+
+| Variable | Example | Required |
+|---|---|---|
+| `PORT` | `3000` | Yes |
+| `NODE_ENV` | `production` | Yes |
+| `DATABASE_URL` | `mongodb+srv://...` (MongoDB Atlas) | Yes |
+| `JWT_SECRET` | A random string (min 32 chars) | Yes |
+| `REFRESH_TOKEN_SECRET` | A random string (min 32 chars) | Yes |
+
+See `.env.example` for optional variables (Redis, payment gateways, Firebase, etc.).
+
+### 3. Deploy
+
+Railway will detect the `Dockerfile` and build automatically. After deployment, verify the health endpoint:
+
+```bash
+curl https://<your-railway-url>/health
+```
+
+### Keeping dependencies in sync
+
+Always commit `package-lock.json` when dependencies change. The Dockerfile uses `npm ci` which requires the lock file to be in sync with `package.json`. If you update dependencies locally:
+
+```bash
+cd backend
+rm -rf node_modules package-lock.json
+npm install
+# Commit the new package-lock.json
+git add package-lock.json
+git commit -m "chore: sync package-lock.json"
+```
+
 ## Database Seeding
 
 Seed the database with sample data for development:
