@@ -81,3 +81,48 @@
 # ==========================================
 -keep class com.google.android.gms.location.** { *; }
 -dontwarn com.google.android.gms.**
+
+# ==========================================
+# Firebase (Messaging & Analytics)
+# ==========================================
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+
+# ==========================================
+# Gson Serialization — keep model classes
+# ==========================================
+-keepattributes *Annotation*
+-keep class sun.misc.Unsafe { *; }
+-keep class com.google.gson.** { *; }
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+# Keep all data classes used as Gson models
+-keep class com.khabarexpress.buyer.data.remote.dto.** { *; }
+-keep class com.khabarexpress.buyer.domain.model.** { *; }
+
+# ==========================================
+# Moshi Serialization
+# ==========================================
+-keep class com.squareup.moshi.** { *; }
+-keepclasseswithmembers class * {
+    @com.squareup.moshi.* <methods>;
+}
+-keep @com.squareup.moshi.JsonClass class *
+
+# ==========================================
+# Kotlin Coroutines
+# ==========================================
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-dontwarn kotlinx.coroutines.**
+
+# ==========================================
+# Room Database
+# ==========================================
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+-dontwarn androidx.room.**

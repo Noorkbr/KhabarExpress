@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Order
 import com.khabarexpress.buyer.domain.model.OrderStatus
 import com.khabarexpress.buyer.domain.model.OrderTracking
-import com.khabarexpress.buyer.domain.repository.OrderRepository
+import com.khabarexpress.buyer.domain.usecase.order.CancelOrderUseCase
+import com.khabarexpress.buyer.domain.usecase.order.GetOrderByIdUseCase
+import com.khabarexpress.buyer.domain.usecase.order.TrackOrderUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +22,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class OrderTrackingViewModel @Inject constructor(
-    private val orderRepository: OrderRepository
+    private val getOrderByIdUseCase: GetOrderByIdUseCase,
+    private val trackOrderUseCase: TrackOrderUseCase,
+    private val cancelOrderUseCase: CancelOrderUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<OrderTrackingUiState>(OrderTrackingUiState.Loading)
@@ -35,7 +39,7 @@ class OrderTrackingViewModel @Inject constructor(
     fun loadOrderDetails(orderId: String) {
         viewModelScope.launch {
             _uiState.value = OrderTrackingUiState.Loading
-            orderRepository.getOrderById(orderId)
+            getOrderByIdUseCase(orderId)
                 .onSuccess { order ->
                     _uiState.value = OrderTrackingUiState.Success(
                         order = order,
@@ -59,7 +63,7 @@ class OrderTrackingViewModel @Inject constructor(
      */
     fun subscribeToTracking(orderId: String) {
         viewModelScope.launch {
-            orderRepository.trackOrder(orderId)
+            trackOrderUseCase(orderId)
                 .catch { error ->
                     // Don't change state to error, just show old data
                     // Tracking can fail temporarily
@@ -94,7 +98,7 @@ class OrderTrackingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _cancelOrderState.value = CancelOrderState.Loading
-            orderRepository.cancelOrder(orderId, reason)
+            cancelOrderUseCase(orderId, reason)
                 .onSuccess {
                     _cancelOrderState.value = CancelOrderState.Success
                     // Reload order to show updated status

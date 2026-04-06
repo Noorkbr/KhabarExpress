@@ -4,7 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Cart
 import com.khabarexpress.buyer.domain.model.PromoCode
-import com.khabarexpress.buyer.domain.repository.CartRepository
+import com.khabarexpress.buyer.domain.usecase.cart.ApplyPromoCodeUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.ClearCartUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.GetCartUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.RemoveCartItemUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.RemovePromoCodeUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.UpdateCartItemQuantityUseCase
 import com.khabarexpress.buyer.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +25,12 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CartViewModel @Inject constructor(
-    private val cartRepository: CartRepository
+    private val getCartUseCase: GetCartUseCase,
+    private val updateCartItemQuantityUseCase: UpdateCartItemQuantityUseCase,
+    private val removeCartItemUseCase: RemoveCartItemUseCase,
+    private val clearCartUseCase: ClearCartUseCase,
+    private val applyPromoCodeUseCase: ApplyPromoCodeUseCase,
+    private val removePromoCodeUseCase: RemovePromoCodeUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CartUiState>(CartUiState.Loading)
@@ -39,7 +49,7 @@ class CartViewModel @Inject constructor(
     fun loadCart() {
         viewModelScope.launch {
             _uiState.value = CartUiState.Loading
-            cartRepository.getCart()
+            getCartUseCase()
                 .catch { error ->
                     _uiState.value = CartUiState.Error(
                         error.message ?: "Failed to load cart"
@@ -69,7 +79,7 @@ class CartViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            cartRepository.updateQuantity(itemId, quantity)
+            updateCartItemQuantityUseCase(itemId, quantity)
                 .onFailure { error ->
                     _uiState.value = CartUiState.Error(
                         error.message ?: "Failed to update quantity"
@@ -83,7 +93,7 @@ class CartViewModel @Inject constructor(
      */
     fun removeItem(itemId: String) {
         viewModelScope.launch {
-            cartRepository.removeItem(itemId)
+            removeCartItemUseCase(itemId)
                 .onFailure { error ->
                     _uiState.value = CartUiState.Error(
                         error.message ?: "Failed to remove item"
@@ -97,7 +107,7 @@ class CartViewModel @Inject constructor(
      */
     fun clearCart() {
         viewModelScope.launch {
-            cartRepository.clearCart()
+            clearCartUseCase()
                 .onFailure { error ->
                     _uiState.value = CartUiState.Error(
                         error.message ?: "Failed to clear cart"
@@ -123,7 +133,7 @@ class CartViewModel @Inject constructor(
 
         viewModelScope.launch {
             _promoCodeState.value = PromoCodeState.Loading
-            cartRepository.applyPromoCode(code)
+            applyPromoCodeUseCase(code)
                 .onSuccess { promoCode ->
                     _promoCodeState.value = PromoCodeState.Success(promoCode)
                 }
@@ -140,7 +150,7 @@ class CartViewModel @Inject constructor(
      */
     fun removePromoCode() {
         viewModelScope.launch {
-            cartRepository.removePromoCode()
+            removePromoCodeUseCase()
                 .onSuccess {
                     _promoCodeState.value = PromoCodeState.Idle
                 }

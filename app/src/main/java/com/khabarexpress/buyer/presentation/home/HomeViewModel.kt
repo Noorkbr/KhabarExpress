@@ -3,7 +3,11 @@ package com.khabarexpress.buyer.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Restaurant
-import com.khabarexpress.buyer.domain.repository.RestaurantRepository
+import com.khabarexpress.buyer.domain.usecase.restaurant.FilterByCategoryUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.GetNearbyRestaurantsUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.GetRestaurantsUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.SearchRestaurantsUseCase
+import com.khabarexpress.buyer.domain.usecase.restaurant.ToggleFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +22,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val restaurantRepository: RestaurantRepository
+    private val getRestaurantsUseCase: GetRestaurantsUseCase,
+    private val getNearbyRestaurantsUseCase: GetNearbyRestaurantsUseCase,
+    private val filterByCategoryUseCase: FilterByCategoryUseCase,
+    private val searchRestaurantsUseCase: SearchRestaurantsUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -40,7 +48,7 @@ class HomeViewModel @Inject constructor(
     fun loadRestaurants() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
-            restaurantRepository.getRestaurants()
+            getRestaurantsUseCase()
                 .catch { error ->
                     _uiState.value = HomeUiState.Error(
                         error.message ?: "Failed to load restaurants"
@@ -74,7 +82,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
-            restaurantRepository.searchRestaurants(query)
+            searchRestaurantsUseCase(query)
                 .catch { error ->
                     _uiState.value = HomeUiState.Error(
                         error.message ?: "Search failed"
@@ -108,7 +116,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
-            restaurantRepository.filterByCategory(category)
+            filterByCategoryUseCase(category)
                 .catch { error ->
                     _uiState.value = HomeUiState.Error(
                         error.message ?: "Filter failed"
@@ -137,7 +145,7 @@ class HomeViewModel @Inject constructor(
      */
     fun toggleFavorite(restaurantId: String) {
         viewModelScope.launch {
-            restaurantRepository.toggleFavorite(restaurantId)
+            toggleFavoriteUseCase(restaurantId)
                 .onSuccess { isFavorite ->
                     // Update UI state with new favorite status
                     val currentState = _uiState.value
@@ -161,7 +169,7 @@ class HomeViewModel @Inject constructor(
     fun loadNearbyRestaurants(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
-            restaurantRepository.getNearbyRestaurants(latitude, longitude)
+            getNearbyRestaurantsUseCase(latitude, longitude)
                 .onSuccess { restaurants ->
                     if (restaurants.isEmpty()) {
                         _uiState.value = HomeUiState.Empty

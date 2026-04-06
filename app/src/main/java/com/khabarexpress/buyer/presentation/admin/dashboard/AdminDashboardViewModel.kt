@@ -3,6 +3,7 @@ package com.khabarexpress.buyer.presentation.admin.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.repository.AdminRepository
+import com.khabarexpress.buyer.domain.usecase.admin.GetDashboardStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ data class AdminDashboardUiState(
 
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
+    private val getDashboardStatsUseCase: GetDashboardStatsUseCase,
     private val adminRepository: AdminRepository
 ) : ViewModel() {
 
@@ -43,7 +45,7 @@ class AdminDashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             // Fetch dashboard stats
-            val dashResult = adminRepository.getDashboardStats()
+            val dashResult = getDashboardStatsUseCase()
             dashResult.onSuccess { data ->
                 _uiState.update {
                     it.copy(

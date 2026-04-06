@@ -5,9 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.buyer.domain.model.Address
 import com.khabarexpress.buyer.domain.model.Order
 import com.khabarexpress.buyer.domain.model.PaymentMethod
-import com.khabarexpress.buyer.domain.repository.CartRepository
-import com.khabarexpress.buyer.domain.repository.OrderRepository
 import com.khabarexpress.buyer.domain.repository.UserRepository
+import com.khabarexpress.buyer.domain.usecase.cart.ClearCartUseCase
+import com.khabarexpress.buyer.domain.usecase.cart.GetCartUseCase
+import com.khabarexpress.buyer.domain.usecase.order.PlaceOrderUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.AddAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.DeleteAddressUseCase
+import com.khabarexpress.buyer.domain.usecase.profile.GetAddressesUseCase
 import com.khabarexpress.buyer.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,9 +27,13 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CheckoutViewModel @Inject constructor(
-    private val orderRepository: OrderRepository,
-    private val userRepository: UserRepository,
-    private val cartRepository: CartRepository
+    private val placeOrderUseCase: PlaceOrderUseCase,
+    private val getAddressesUseCase: GetAddressesUseCase,
+    private val getCartUseCase: GetCartUseCase,
+    private val clearCartUseCase: ClearCartUseCase,
+    private val addAddressUseCase: AddAddressUseCase,
+    private val deleteAddressUseCase: DeleteAddressUseCase,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CheckoutUiState>(CheckoutUiState.Loading)
@@ -55,7 +63,7 @@ class CheckoutViewModel @Inject constructor(
             
             try {
                 // Collect addresses
-                userRepository.getUserAddresses()
+                getAddressesUseCase()
                     .catch { error ->
                         _uiState.value = CheckoutUiState.Error(
                             error.message ?: "Failed to load addresses"
@@ -63,7 +71,7 @@ class CheckoutViewModel @Inject constructor(
                     }
                     .collect { addresses ->
                         // Collect cart for order summary
-                        cartRepository.getCart()
+                        getCartUseCase()
                             .catch { error ->
                                 _uiState.value = CheckoutUiState.Error(
                                     error.message ?: "Failed to load cart"
@@ -120,7 +128,7 @@ class CheckoutViewModel @Inject constructor(
     fun addAddress(address: Address) {
         viewModelScope.launch {
             try {
-                userRepository.addAddress(address)
+                addAddressUseCase(address)
                 loadCheckoutData()
             } catch (e: Exception) {
                 // Handle error
@@ -148,7 +156,7 @@ class CheckoutViewModel @Inject constructor(
     fun deleteAddress(addressId: String) {
         viewModelScope.launch {
             try {
-                userRepository.deleteAddress(addressId)
+                deleteAddressUseCase(addressId)
                 loadCheckoutData()
             } catch (e: Exception) {
                 // Handle error
@@ -199,7 +207,7 @@ class CheckoutViewModel @Inject constructor(
 
         viewModelScope.launch {
             _placeOrderState.value = PlaceOrderState.Loading
-            orderRepository.placeOrder(
+            placeOrderUseCase(
                 restaurantId = restId,
                 deliveryAddress = address,
                 paymentMethod = paymentMethod,
@@ -207,7 +215,7 @@ class CheckoutViewModel @Inject constructor(
             )
                 .onSuccess { order ->
                     // Clear cart after successful order
-                    cartRepository.clearCart()
+                    clearCartUseCase()
                     _placeOrderState.value = PlaceOrderState.Success(order)
                 }
                 .onFailure { error ->
