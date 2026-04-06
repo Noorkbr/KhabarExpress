@@ -44,7 +44,10 @@ class UpayService {
   // Verify payment
   async verifyPayment({ transactionId }) {
     try {
-      const response = await axios.get(`${this.baseURL}/verify-payment/${transactionId}`, {
+      // Sanitize transactionId to prevent SSRF
+      const sanitizedId = encodeURIComponent(String(transactionId));
+
+      const response = await axios.get(`${this.baseURL}/verify-payment/${sanitizedId}`, {
         headers: {
           'X-Merchant-Key': this.merchantKey,
         },

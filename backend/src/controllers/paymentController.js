@@ -374,8 +374,13 @@ exports.rocketCallback = async (req, res, next) => {
   try {
     const { payment_id, transaction_id, status } = req.body;
 
+    // Sanitize inputs to prevent NoSQL injection
+    if (typeof payment_id !== 'string' || typeof status !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid callback parameters' });
+    }
+
     const payment = await Payment.findOne({
-      'gateway.paymentId': payment_id,
+      'gateway.paymentId': String(payment_id),
     });
 
     if (!payment) {
@@ -388,7 +393,7 @@ exports.rocketCallback = async (req, res, next) => {
     if (status === 'completed' || status === 'success') {
       // Verify payment
       const verifyResponse = await rocketService.verifyPayment({
-        transactionId: transaction_id,
+        transactionId: String(transaction_id || ''),
       });
 
       if (verifyResponse.success) {
@@ -437,8 +442,13 @@ exports.upayCallback = async (req, res, next) => {
   try {
     const { payment_id, transaction_id, status } = req.body;
 
+    // Sanitize inputs to prevent NoSQL injection
+    if (typeof payment_id !== 'string' || typeof status !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid callback parameters' });
+    }
+
     const payment = await Payment.findOne({
-      'gateway.paymentId': payment_id,
+      'gateway.paymentId': String(payment_id),
     });
 
     if (!payment) {
@@ -451,7 +461,7 @@ exports.upayCallback = async (req, res, next) => {
     if (status === 'completed' || status === 'success') {
       // Verify payment
       const verifyResponse = await upayService.verifyPayment({
-        transactionId: transaction_id,
+        transactionId: String(transaction_id || ''),
       });
 
       if (verifyResponse.success) {
