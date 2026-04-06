@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const addressSchema = new mongoose.Schema({
   label: {
@@ -68,11 +69,31 @@ const userSchema = new mongoose.Schema({
     enum: ['customer', 'admin'],
     default: 'customer',
   },
+  password: {
+    type: String,
+    select: false, // Don't return password by default
+  },
+  isBanned: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true,
 });
 
 // Index for geospatial queries
 userSchema.index({ 'addresses.location': '2dsphere' });
+
+// Hash password before save (only for admin users with password)
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Compare password method
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);

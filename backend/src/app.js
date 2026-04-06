@@ -13,9 +13,26 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+// Always allow the Vite dev server and configurable admin panel URL
+const adminPanelUrl = process.env.ADMIN_PANEL_URL || 'http://localhost:5173';
+if (!allowedOrigins.includes(adminPanelUrl)) allowedOrigins.push(adminPanelUrl);
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 
 // Rate limiting

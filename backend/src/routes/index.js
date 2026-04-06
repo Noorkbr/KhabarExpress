@@ -14,6 +14,7 @@ const paymentRoutes = require('./paymentRoutes');
 const reviewRoutes = require('./reviewRoutes');
 const promoCodeRoutes = require('./promoCodeRoutes');
 const adminRoutes = require('./adminRoutes');
+const adminAuthRoutes = require('./adminAuthRoutes');
 const uploadRoutes = require('./uploadRoutes');
 
 // Mount routes
@@ -29,6 +30,7 @@ router.use('/payments', paymentRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/promo-codes', promoCodeRoutes);
 router.use('/admin', adminRoutes);
+router.use('/admin/auth', adminAuthRoutes);
 router.use('/upload', uploadRoutes);
 
 // API info endpoint
