@@ -5,7 +5,28 @@ const Rider = require('../models/Rider');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 
-// Get dashboard statistics
+// ── Helpers ────────────────────────────────────────────────────
+
+/** Escape regex-special characters to prevent ReDoS / NoSQL injection via $regex */
+const escapeRegex = (s) => String(s).replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
+
+/** Cast query param to string and reject objects / arrays from user input */
+const safeStr = (val) => (val && typeof val === 'string' ? val : null);
+
+/** Validate a date string and return a Date, or null */
+const safeDate = (val) => {
+  const d = new Date(safeStr(val) || '');
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// ── Enum allow-lists ──────────────────────────────────────────
+const ALLOWED_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way', 'delivered', 'cancelled'];
+const ALLOWED_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'];
+const ALLOWED_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+const ALLOWED_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
+const ALLOWED_RIDER_STATUSES = ['available', 'busy', 'offline'];
+const ALLOWED_USER_ROLES = ['customer', 'admin'];
+
 exports.getDashboardStats = async (req, res, next) => {
   try {
     const today = new Date();
@@ -647,6 +668,343 @@ exports.getVerificationStats = async (req, res, next) => {
         total: pending + approved + rejected,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Users Management
+// ──────────────────────────────────────────────────────────────
+
+exports.listUsers = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = safeStr(req.query.search);
+    const role = ALLOWED_USER_ROLES.includes(safeStr(req.query.role)) ? safeStr(req.query.role) : null;
+
+    const query = {};
+    if (search) {
+      const escaped = escapeRegex(search);
+      query.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+    if (role) query.role = role;
+
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id).select('-__v');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const orderCount = await Order.countDocuments({ user: req.params.id });
+    res.json({ success: true, data: { ...user.toObject(), orderCount } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateUser = async (req, res, next) => {
+  try {
+    const roleInput = safeStr(req.body.role);
+    const role = ALLOWED_USER_ROLES.includes(roleInput) ? roleInput : undefined;
+    const { isBanned } = req.body;
+    const update = {};
+    if (role !== undefined) update.role = role;
+    if (isBanned !== undefined) update.isBanned = Boolean(isBanned);
+
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true }).select('-__v');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Orders Management
+// ──────────────────────────────────────────────────────────────
+
+exports.listOrders = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const statusRaw = safeStr(req.query.status);
+    const paymentMethodRaw = safeStr(req.query.paymentMethod);
+    const search = safeStr(req.query.search);
+
+    const status = ALLOWED_ORDER_STATUSES.includes(statusRaw) ? statusRaw : null;
+    const paymentMethod = ALLOWED_PAYMENT_METHODS.includes(paymentMethodRaw) ? paymentMethodRaw : null;
+    const startDate = safeDate(req.query.startDate);
+    const endDate = safeDate(req.query.endDate);
+
+    const query = {};
+    if (status) query.status = status;
+    if (paymentMethod) query.paymentMethod = paymentMethod;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = startDate;
+      if (endDate) query.createdAt.$lte = endDate;
+    }
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: escapeRegex(search), $options: 'i' } },
+      ];
+    }
+
+    const total = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+      .populate('user', 'name phone')
+      .populate('restaurant', 'name')
+      .populate('rider', 'name phone')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getOrderById = async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate('user', 'name phone email')
+      .populate('restaurant', 'name phone address')
+      .populate('rider', 'name phone')
+      .populate('items.menuItem', 'name price')
+      .select('-__v');
+
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    res.json({ success: true, data: order });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateOrderStatus = async (req, res, next) => {
+  try {
+    const statusRaw = safeStr(req.body.status);
+    const status = ALLOWED_ORDER_STATUSES.includes(statusRaw) ? statusRaw : null;
+    if (!status) return res.status(400).json({ success: false, message: 'Invalid status value' });
+
+    const cancellationReason = safeStr(req.body.cancellationReason);
+    const update = { status };
+    if (cancellationReason) update.cancellationReason = cancellationReason;
+    update.$push = { statusHistory: { status, timestamp: new Date(), note: cancellationReason } };
+
+    const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Restaurants Management
+// ──────────────────────────────────────────────────────────────
+
+exports.listRestaurants = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const approvalStatusRaw = safeStr(req.query.approvalStatus);
+    const search = safeStr(req.query.search);
+
+    const approvalStatus = ALLOWED_APPROVAL_STATUSES.includes(approvalStatusRaw) ? approvalStatusRaw : null;
+
+    const query = {};
+    if (approvalStatus) query.approvalStatus = approvalStatus;
+    if (search) {
+      const escaped = escapeRegex(search);
+      query.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    const total = await Restaurant.countDocuments(query);
+    const restaurants = await Restaurant.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.json({
+      success: true,
+      data: restaurants,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateRestaurantStatus = async (req, res, next) => {
+  try {
+    const approvalStatusRaw = safeStr(req.body.approvalStatus);
+    const approvalStatus = ALLOWED_APPROVAL_STATUSES.includes(approvalStatusRaw) ? approvalStatusRaw : undefined;
+    const isActive = req.body.isActive !== undefined ? Boolean(req.body.isActive) : undefined;
+    const rejectionReason = safeStr(req.body.rejectionReason);
+    const update = {};
+    if (approvalStatus !== undefined) update.approvalStatus = approvalStatus;
+    if (isActive !== undefined) update.isActive = isActive;
+    if (rejectionReason) update.rejectionReason = rejectionReason;
+
+    const restaurant = await Restaurant.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!restaurant) return res.status(404).json({ success: false, message: 'Restaurant not found' });
+
+    res.json({ success: true, data: restaurant });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Riders Management
+// ──────────────────────────────────────────────────────────────
+
+exports.listRiders = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const statusRaw = safeStr(req.query.status);
+    const search = safeStr(req.query.search);
+
+    const status = ALLOWED_RIDER_STATUSES.includes(statusRaw) ? statusRaw : null;
+
+    const query = {};
+    if (status) query.status = status;
+    if (search) {
+      const escaped = escapeRegex(search);
+      query.$or = [
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+      ];
+    }
+
+    const total = await Rider.countDocuments(query);
+    const riders = await Rider.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.json({
+      success: true,
+      data: riders,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Payments Management
+// ──────────────────────────────────────────────────────────────
+
+exports.listPayments = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const methodRaw = safeStr(req.query.method);
+    const statusRaw = safeStr(req.query.status);
+
+    const method = ALLOWED_PAYMENT_METHODS.includes(methodRaw) ? methodRaw : null;
+    const status = ALLOWED_PAYMENT_STATUSES.includes(statusRaw) ? statusRaw : null;
+    const startDate = safeDate(req.query.startDate);
+    const endDate = safeDate(req.query.endDate);
+
+    const query = {};
+    if (method) query.method = method;
+    if (status) query.status = status;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = startDate;
+      if (endDate) query.createdAt.$lte = endDate;
+    }
+
+    const total = await Payment.countDocuments(query);
+    const payments = await Payment.find(query)
+      .populate('user', 'name phone')
+      .populate('order', 'orderNumber total')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('-__v');
+
+    res.json({
+      success: true,
+      data: payments,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ──────────────────────────────────────────────────────────────
+// Settings Management
+// ──────────────────────────────────────────────────────────────
+
+// In-memory settings store (replace with DB model in production)
+let platformSettings = {
+  appName: 'KhabarExpress',
+  deliveryFee: parseInt(process.env.BASE_DELIVERY_FEE) || 20,
+  adminProfitRate: parseFloat(process.env.ADMIN_PROFIT_RATE) || 5,
+  minOrderAmount: parseInt(process.env.MIN_ORDER_AMOUNT) || 50,
+  maintenanceMode: process.env.MAINTENANCE_MODE === 'true',
+  paymentMethods: {
+    bkash: true,
+    rocket: true,
+    upay: true,
+    sslcommerz: true,
+    cod: true,
+  },
+};
+
+exports.getSettings = async (req, res, next) => {
+  try {
+    res.json({ success: true, data: platformSettings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateSettings = async (req, res, next) => {
+  try {
+    platformSettings = { ...platformSettings, ...req.body };
+    res.json({ success: true, data: platformSettings });
   } catch (error) {
     next(error);
   }

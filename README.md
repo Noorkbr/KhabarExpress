@@ -149,6 +149,7 @@ KhabarExpress/
 ├── restaurant-app/               # 🏪 Seller App
 │   └── src/main/java/com/khabarexpress/seller/
 ├── backend/                      # ⚙️ Node.js Backend API
+├── admin-panel/                  # 🖥️ Web Admin Dashboard (React + Vite)
 ├── store-listing/                # 📋 Play Store Descriptions
 │   ├── buyer-app/
 │   ├── seller-app/
@@ -170,6 +171,52 @@ The Node.js backend is in `/backend`. See [backend/README.md](backend/README.md)
 - Buyers type their delivery address (e.g., "কাশিমপুর, গাজীপুর")
 - No geocoding API required
 - Simple, reliable, works everywhere in Bangladesh
+
+---
+
+## 🖥️ Admin Panel (Web Dashboard)
+
+A full-featured web admin dashboard is available at `admin-panel/`.
+
+### Setup
+
+```bash
+# 1. Seed the admin user (run once)
+cd backend
+node src/seeds/seedAdmin.js
+
+# 2. Start the admin panel
+cd admin-panel
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Default Admin Credentials
+
+| Field    | Value              |
+|----------|--------------------|
+| Phone    | `+8801883688374`   |
+| Password | `16741210@Noor`    |
+
+### Features
+
+| Page           | Description                                  |
+|----------------|----------------------------------------------|
+| 🏠 Dashboard   | KPIs, revenue chart, recent orders, profit summary |
+| 📦 Orders      | Full order management with status updates    |
+| 🏪 Restaurants | Approval/reject/suspend restaurants          |
+| 👥 Users       | Manage users, ban/unban, change roles        |
+| 🛵 Riders      | View all riders and statuses                 |
+| 💳 Payments    | Transaction history, profit tracking, CSV export |
+| 📊 Reports     | Financial reports with date range filters    |
+| 🎟️ Promo Codes | Create and manage discount codes             |
+| 📍 Zones       | Delivery zone management                     |
+| ⚙️ Settings    | Platform config, payment gateway toggles     |
+
+See [admin-panel/README.md](admin-panel/README.md) for full documentation.
 
 ---
 
