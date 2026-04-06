@@ -33,8 +33,47 @@ const otpLimiter = rateLimit({
   },
 });
 
+// Payment creation rate limiter
+const paymentLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 payment attempts per 5 minutes
+  message: {
+    success: false,
+    message: 'Too many payment attempts, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Upload rate limiter
+const uploadLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20, // 20 uploads per 10 minutes
+  message: {
+    success: false,
+    message: 'Too many upload requests, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Search/browse rate limiter (generous)
+const searchLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 searches per minute
+  message: {
+    success: false,
+    message: 'Too many search requests, please slow down',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
   otpLimiter,
+  paymentLimiter,
+  uploadLimiter,
+  searchLimiter,
 };

@@ -53,6 +53,18 @@ jest.mock('../src/services/sslCommerzService', () => ({
   validatePayment: jest.fn(),
 }));
 
+jest.mock('../src/services/rocketService', () => ({
+  createPayment: jest.fn(),
+  verifyPayment: jest.fn(),
+  refundPayment: jest.fn(),
+}));
+
+jest.mock('../src/services/upayService', () => ({
+  createPayment: jest.fn(),
+  verifyPayment: jest.fn(),
+  refundPayment: jest.fn(),
+}));
+
 // Mock User model
 jest.mock('../src/models/User', () => {
   const Model = jest.fn();
@@ -238,6 +250,52 @@ describe('Payment Endpoints', () => {
         .send({ tran_id: 'test789', status: 'VALID' });
 
       expect(res.statusCode).not.toBe(404);
+    });
+
+    it('POST /api/v1/payments/rocket/callback should accept requests', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/rocket/callback')
+        .send({ payment_id: 'rocket123', transaction_id: 'txn456', status: 'completed' });
+
+      expect(res.statusCode).not.toBe(404);
+    });
+
+    it('POST /api/v1/payments/upay/callback should accept requests', async () => {
+      const res = await request(app)
+        .post('/api/v1/payments/upay/callback')
+        .send({ payment_id: 'upay123', transaction_id: 'txn789', status: 'success' });
+
+      expect(res.statusCode).not.toBe(404);
+    });
+  });
+
+  describe('Payment Method Validation', () => {
+    it('should accept rocket as a valid payment method', async () => {
+      const token = generateAuthToken();
+
+      const res = await request(app)
+        .post('/api/v1/payments/create')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ orderId: '607f1f77bcf86cd799439099', method: 'rocket' });
+
+      // Should not get a 400 validation error for the method field
+      // (may get other errors like order not found, which is expected)
+      if (res.statusCode === 400) {
+        expect(res.body.message).not.toContain('Invalid payment method');
+      }
+    });
+
+    it('should accept upay as a valid payment method', async () => {
+      const token = generateAuthToken();
+
+      const res = await request(app)
+        .post('/api/v1/payments/create')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ orderId: '607f1f77bcf86cd799439099', method: 'upay' });
+
+      if (res.statusCode === 400) {
+        expect(res.body.message).not.toContain('Invalid payment method');
+      }
     });
   });
 });

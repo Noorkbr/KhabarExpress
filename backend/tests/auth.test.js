@@ -6,6 +6,9 @@ jest.mock('../src/middleware/rateLimiter', () => ({
   otpLimiter: (req, res, next) => next(),
   authLimiter: (req, res, next) => next(),
   apiLimiter: (req, res, next) => next(),
+  paymentLimiter: (req, res, next) => next(),
+  uploadLimiter: (req, res, next) => next(),
+  searchLimiter: (req, res, next) => next(),
 }));
 
 // Mock Redis before any module that imports it

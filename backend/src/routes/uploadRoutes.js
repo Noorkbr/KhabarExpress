@@ -3,9 +3,11 @@ const router = express.Router();
 const uploadController = require('../controllers/uploadController');
 const upload = require('../middleware/upload');
 const { protect } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/rateLimiter');
 
 // All upload routes require authentication
 router.use(protect);
+router.use(uploadLimiter);
 
 // Restaurant images
 router.post(

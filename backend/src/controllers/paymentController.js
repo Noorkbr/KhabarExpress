@@ -3,6 +3,8 @@ const Order = require('../models/Order');
 const bkashService = require('../services/bkashService');
 const nagadService = require('../services/nagadService');
 const sslCommerzService = require('../services/sslCommerzService');
+const rocketService = require('../services/rocketService');
+const upayService = require('../services/upayService');
 const { getIO } = require('../config/socket');
 
 // Default admin profit rate (5%)
@@ -92,8 +94,39 @@ exports.createPayment = async (req, res, next) => {
         };
         break;
 
-      case 'card':
       case 'rocket':
+        paymentResponse = await rocketService.createPayment({
+          amount: order.totalAmount,
+          orderId: order._id.toString(),
+          paymentId: payment._id.toString(),
+          customerPhone: req.user.phone,
+          returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
+        });
+
+        payment.gateway = {
+          provider: 'rocket',
+          paymentId: paymentResponse.paymentId,
+          sessionKey: paymentResponse.sessionKey,
+        };
+        break;
+
+      case 'upay':
+        paymentResponse = await upayService.createPayment({
+          amount: order.totalAmount,
+          orderId: order._id.toString(),
+          paymentId: payment._id.toString(),
+          customerPhone: req.user.phone,
+          returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
+        });
+
+        payment.gateway = {
+          provider: 'upay',
+          paymentId: paymentResponse.paymentId,
+          sessionKey: paymentResponse.sessionKey,
+        };
+        break;
+
+      case 'card':
         paymentResponse = await sslCommerzService.createPayment({
           amount: order.totalAmount,
           orderId: order._id.toString(),
@@ -336,6 +369,146 @@ exports.sslCommerzCallback = async (req, res, next) => {
   }
 };
 
+// Rocket callback handler
+exports.rocketCallback = async (req, res, next) => {
+  try {
+    const { payment_id, transaction_id, status } = req.body;
+
+    // Sanitize inputs to prevent NoSQL injection
+    if (typeof payment_id !== 'string' || typeof status !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid callback parameters' });
+    }
+
+    const payment = await Payment.findOne({
+      'gateway.paymentId': String(payment_id),
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found',
+      });
+    }
+
+    if (status === 'completed' || status === 'success') {
+      // Verify payment
+      const verifyResponse = await rocketService.verifyPayment({
+        transactionId: String(transaction_id || ''),
+      });
+
+      if (verifyResponse.success) {
+        payment.status = 'success';
+        payment.gateway.transactionId = verifyResponse.transactionId;
+        payment.gatewayResponse = verifyResponse.data;
+        applyAdminProfit(payment);
+
+        // Update order
+        const order = await Order.findById(payment.order);
+        if (order) {
+          order.paymentStatus = 'paid';
+          order.status = 'confirmed';
+          await order.save();
+
+          // Emit order update
+          const io = getIO();
+          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+            orderId: order._id,
+            status: 'confirmed',
+            paymentStatus: 'paid',
+          });
+        }
+      } else {
+        payment.status = 'failed';
+        payment.gatewayResponse = verifyResponse;
+      }
+    } else {
+      payment.status = 'failed';
+      payment.gatewayResponse = req.body;
+    }
+
+    await payment.save();
+
+    res.json({
+      success: payment.status === 'success',
+      message: payment.status === 'success' ? 'Payment successful' : 'Payment failed',
+      data: payment,
+    });
+  } catch (error) {
+    console.error('Rocket callback error:', error);
+    next(error);
+  }
+};
+
+// Upay callback handler
+exports.upayCallback = async (req, res, next) => {
+  try {
+    const { payment_id, transaction_id, status } = req.body;
+
+    // Sanitize inputs to prevent NoSQL injection
+    if (typeof payment_id !== 'string' || typeof status !== 'string') {
+      return res.status(400).json({ success: false, message: 'Invalid callback parameters' });
+    }
+
+    const payment = await Payment.findOne({
+      'gateway.paymentId': String(payment_id),
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found',
+      });
+    }
+
+    if (status === 'completed' || status === 'success') {
+      // Verify payment
+      const verifyResponse = await upayService.verifyPayment({
+        transactionId: String(transaction_id || ''),
+      });
+
+      if (verifyResponse.success) {
+        payment.status = 'success';
+        payment.gateway.transactionId = verifyResponse.transactionId;
+        payment.gatewayResponse = verifyResponse.data;
+        applyAdminProfit(payment);
+
+        // Update order
+        const order = await Order.findById(payment.order);
+        if (order) {
+          order.paymentStatus = 'paid';
+          order.status = 'confirmed';
+          await order.save();
+
+          // Emit order update
+          const io = getIO();
+          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+            orderId: order._id,
+            status: 'confirmed',
+            paymentStatus: 'paid',
+          });
+        }
+      } else {
+        payment.status = 'failed';
+        payment.gatewayResponse = verifyResponse;
+      }
+    } else {
+      payment.status = 'failed';
+      payment.gatewayResponse = req.body;
+    }
+
+    await payment.save();
+
+    res.json({
+      success: payment.status === 'success',
+      message: payment.status === 'success' ? 'Payment successful' : 'Payment failed',
+      data: payment,
+    });
+  } catch (error) {
+    console.error('Upay callback error:', error);
+    next(error);
+  }
+};
+
 // Get payment by order ID
 exports.getPaymentByOrderId = async (req, res, next) => {
   try {
@@ -437,6 +610,22 @@ exports.refundPayment = async (req, res, next) => {
         refundResponse = await sslCommerzService.refundPayment({
           bankTransactionId: payment.gateway.transactionId,
           refundAmount: refundAmount,
+          reason,
+        });
+        break;
+
+      case 'rocket':
+        refundResponse = await rocketService.refundPayment({
+          transactionId: payment.gateway.transactionId,
+          amount: refundAmount,
+          reason,
+        });
+        break;
+
+      case 'upay':
+        refundResponse = await upayService.refundPayment({
+          transactionId: payment.gateway.transactionId,
+          amount: refundAmount,
           reason,
         });
         break;

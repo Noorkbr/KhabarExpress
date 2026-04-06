@@ -27,4 +27,10 @@ describe('Health Check', () => {
     expect(res.body.success).toBe(false);
     expect(res.body.message).toBe('Endpoint not found');
   });
+
+  it('GET /api-docs should serve Swagger UI', async () => {
+    const res = await request(app).get('/api-docs/');
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+  });
 });
