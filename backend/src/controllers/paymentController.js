@@ -404,17 +404,19 @@ exports.rocketCallback = async (req, res, next) => {
 
         // Update order
         const order = await Order.findById(payment.order);
-        order.paymentStatus = 'paid';
-        order.status = 'confirmed';
-        await order.save();
+        if (order) {
+          order.paymentStatus = 'paid';
+          order.status = 'confirmed';
+          await order.save();
 
-        // Emit order update
-        const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
-          orderId: order._id,
-          status: 'confirmed',
-          paymentStatus: 'paid',
-        });
+          // Emit order update
+          const io = getIO();
+          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+            orderId: order._id,
+            status: 'confirmed',
+            paymentStatus: 'paid',
+          });
+        }
       } else {
         payment.status = 'failed';
         payment.gatewayResponse = verifyResponse;
@@ -472,17 +474,19 @@ exports.upayCallback = async (req, res, next) => {
 
         // Update order
         const order = await Order.findById(payment.order);
-        order.paymentStatus = 'paid';
-        order.status = 'confirmed';
-        await order.save();
+        if (order) {
+          order.paymentStatus = 'paid';
+          order.status = 'confirmed';
+          await order.save();
 
-        // Emit order update
-        const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
-          orderId: order._id,
-          status: 'confirmed',
-          paymentStatus: 'paid',
-        });
+          // Emit order update
+          const io = getIO();
+          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+            orderId: order._id,
+            status: 'confirmed',
+            paymentStatus: 'paid',
+          });
+        }
       } else {
         payment.status = 'failed';
         payment.gatewayResponse = verifyResponse;
