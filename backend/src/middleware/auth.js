@@ -56,7 +56,7 @@ const auth = async (req, res, next) => {
 const adminAuth = async (req, res, next) => {
   try {
     let authError = null;
-    await auth(req, res, (err) => { authError = err || null; });
+    await auth(req, res, (err) => { authError = err; });
 
     // If auth sent a response already (e.g. 401), stop here
     if (res.headersSent) return;
