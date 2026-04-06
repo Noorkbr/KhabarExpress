@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.model.Analytics
 import com.khabarexpress.seller.domain.model.Order
 import com.khabarexpress.seller.domain.repository.AuthRepository
-import com.khabarexpress.seller.domain.repository.OrderRepository
 import com.khabarexpress.seller.domain.repository.RestaurantRepository
+import com.khabarexpress.seller.domain.usecase.auth.SellerLogoutUseCase
+import com.khabarexpress.seller.domain.usecase.dashboard.GetDashboardUseCase
+import com.khabarexpress.seller.domain.usecase.orders.AcceptOrderUseCase
+import com.khabarexpress.seller.domain.usecase.orders.RejectOrderUseCase
+import com.khabarexpress.seller.domain.usecase.orders.UpdateOrderStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,9 +38,12 @@ sealed class DashboardEvent {
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val orderRepository: OrderRepository,
-    private val restaurantRepository: RestaurantRepository,
-    private val authRepository: AuthRepository
+    private val getDashboardUseCase: GetDashboardUseCase,
+    private val acceptOrderUseCase: AcceptOrderUseCase,
+    private val rejectOrderUseCase: RejectOrderUseCase,
+    private val updateOrderStatusUseCase: UpdateOrderStatusUseCase,
+    private val sellerLogoutUseCase: SellerLogoutUseCase,
+    private val restaurantRepository: RestaurantRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -55,41 +60,23 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            coroutineScope {
-                // Load analytics, pending, confirmed, and preparing orders in parallel
-                val analyticsDeferred = async {
-                    restaurantRepository.getAnalytics("today")
+            getDashboardUseCase().fold(
+                onSuccess = { data ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        analytics = data.analytics,
+                        pendingOrders = data.pendingOrders,
+                        activeOrders = data.activeOrders,
+                        isOpen = data.isOpen
+                    )
+                },
+                onFailure = { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.message ?: "Failed to load dashboard"
+                    )
                 }
-                val pendingDeferred = async {
-                    orderRepository.getOrders(status = "pending")
-                }
-                val confirmedDeferred = async {
-                    orderRepository.getOrders(status = "confirmed")
-                }
-                val preparingDeferred = async {
-                    orderRepository.getOrders(status = "preparing")
-                }
-
-                analyticsDeferred.await().fold(
-                    onSuccess = { analytics ->
-                        _uiState.value = _uiState.value.copy(analytics = analytics)
-                    },
-                    onFailure = { }
-                )
-
-                pendingDeferred.await().fold(
-                    onSuccess = { orders ->
-                        _uiState.value = _uiState.value.copy(pendingOrders = orders)
-                    },
-                    onFailure = { }
-                )
-
-                val confirmed = confirmedDeferred.await().getOrDefault(emptyList())
-                val preparing = preparingDeferred.await().getOrDefault(emptyList())
-                _uiState.value = _uiState.value.copy(activeOrders = confirmed + preparing)
-            }
-
-            _uiState.value = _uiState.value.copy(isLoading = false)
+            )
         }
     }
 
@@ -103,7 +90,7 @@ class DashboardViewModel @Inject constructor(
 
     fun acceptOrder(orderId: String) {
         viewModelScope.launch {
-            orderRepository.acceptOrder(orderId).fold(
+            acceptOrderUseCase(orderId).fold(
                 onSuccess = {
                     _events.emit(DashboardEvent.ShowSuccess("Order accepted"))
                     loadDashboard()
@@ -117,7 +104,7 @@ class DashboardViewModel @Inject constructor(
 
     fun rejectOrder(orderId: String, reason: String) {
         viewModelScope.launch {
-            orderRepository.rejectOrder(orderId, reason).fold(
+            rejectOrderUseCase(orderId, reason).fold(
                 onSuccess = {
                     _events.emit(DashboardEvent.ShowSuccess("Order rejected"))
                     loadDashboard()
@@ -131,7 +118,7 @@ class DashboardViewModel @Inject constructor(
 
     fun updateOrderStatus(orderId: String, status: String) {
         viewModelScope.launch {
-            orderRepository.updateOrderStatus(orderId, status).fold(
+            updateOrderStatusUseCase(orderId, status).fold(
                 onSuccess = {
                     _events.emit(DashboardEvent.ShowSuccess("Order updated to $status"))
                     loadDashboard()
@@ -161,7 +148,7 @@ class DashboardViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            authRepository.logout()
+            sellerLogoutUseCase()
             _events.emit(DashboardEvent.NavigateToLogin)
         }
     }

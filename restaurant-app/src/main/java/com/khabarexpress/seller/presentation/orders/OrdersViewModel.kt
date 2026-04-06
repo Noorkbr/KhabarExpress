@@ -3,7 +3,10 @@ package com.khabarexpress.seller.presentation.orders
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.model.Order
-import com.khabarexpress.seller.domain.repository.OrderRepository
+import com.khabarexpress.seller.domain.usecase.orders.AcceptOrderUseCase
+import com.khabarexpress.seller.domain.usecase.orders.GetPendingOrdersUseCase
+import com.khabarexpress.seller.domain.usecase.orders.RejectOrderUseCase
+import com.khabarexpress.seller.domain.usecase.orders.UpdateOrderStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +29,10 @@ sealed class OrdersEvent {
 
 @HiltViewModel
 class OrdersViewModel @Inject constructor(
-    private val orderRepository: OrderRepository
+    private val getPendingOrdersUseCase: GetPendingOrdersUseCase,
+    private val acceptOrderUseCase: AcceptOrderUseCase,
+    private val rejectOrderUseCase: RejectOrderUseCase,
+    private val updateOrderStatusUseCase: UpdateOrderStatusUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OrdersUiState())
@@ -43,7 +49,7 @@ class OrdersViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, selectedFilter = filter, error = null)
             val status = if (filter == "all") null else filter
-            orderRepository.getOrders(status = status).fold(
+            getPendingOrdersUseCase(status).fold(
                 onSuccess = { orders ->
                     _uiState.value = _uiState.value.copy(isLoading = false, orders = orders)
                 },
@@ -59,7 +65,7 @@ class OrdersViewModel @Inject constructor(
 
     fun acceptOrder(orderId: String) {
         viewModelScope.launch {
-            orderRepository.acceptOrder(orderId).fold(
+            acceptOrderUseCase(orderId).fold(
                 onSuccess = {
                     _events.emit(OrdersEvent.ShowSuccess("Order accepted"))
                     loadOrders()
@@ -73,7 +79,7 @@ class OrdersViewModel @Inject constructor(
 
     fun rejectOrder(orderId: String, reason: String) {
         viewModelScope.launch {
-            orderRepository.rejectOrder(orderId, reason).fold(
+            rejectOrderUseCase(orderId, reason).fold(
                 onSuccess = {
                     _events.emit(OrdersEvent.ShowSuccess("Order rejected"))
                     loadOrders()
@@ -87,7 +93,7 @@ class OrdersViewModel @Inject constructor(
 
     fun updateOrderStatus(orderId: String, status: String) {
         viewModelScope.launch {
-            orderRepository.updateOrderStatus(orderId, status).fold(
+            updateOrderStatusUseCase(orderId, status).fold(
                 onSuccess = {
                     _events.emit(OrdersEvent.ShowSuccess("Status updated"))
                     loadOrders()

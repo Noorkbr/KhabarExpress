@@ -11,6 +11,11 @@ interface RestaurantRepository {
         phone: String? = null,
         cuisines: List<String>? = null
     ): Result<RestaurantInfo>
+    suspend fun updateOperatingHours(
+        openingTime: String,
+        closingTime: String,
+        openDays: List<String>? = null
+    ): Result<RestaurantInfo>
     suspend fun toggleOpenStatus(): Result<Boolean>
     suspend fun getAnalytics(period: String = "today"): Result<Analytics>
 }

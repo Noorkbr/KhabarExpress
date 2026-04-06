@@ -78,6 +78,51 @@ class RestaurantRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateOperatingHours(
+        openingTime: String,
+        closingTime: String,
+        openDays: List<String>?
+    ): Result<RestaurantInfo> {
+        return try {
+            val response = restaurantApi.updateProfile(
+                getToken(),
+                UpdateProfileRequest(
+                    openingTime = openingTime,
+                    closingTime = closingTime,
+                    openDays = openDays
+                )
+            )
+            if (response.isSuccessful && response.body()?.success == true) {
+                val data = response.body()!!.data
+                if (data != null) {
+                    Result.success(RestaurantInfo(
+                        id = data.id ?: "",
+                        name = data.name,
+                        description = data.description,
+                        phone = data.phone,
+                        email = data.email,
+                        cuisines = data.cuisines,
+                        category = data.category,
+                        coverImage = data.coverImage,
+                        logo = data.logo,
+                        rating = data.rating,
+                        totalReviews = data.totalReviews,
+                        totalOrders = data.totalOrders,
+                        isOpen = data.isOpen,
+                        isActive = data.isActive,
+                        approvalStatus = data.approvalStatus
+                    ))
+                } else {
+                    Result.failure(Exception("No data returned"))
+                }
+            } else {
+                Result.failure(Exception("Update failed: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Network error: ${e.message}", e))
+        }
+    }
+
     override suspend fun toggleOpenStatus(): Result<Boolean> {
         return try {
             val response = restaurantApi.toggleOpenStatus(getToken())

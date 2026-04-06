@@ -3,6 +3,7 @@ package com.khabarexpress.seller.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.repository.AuthRepository
+import com.khabarexpress.seller.domain.usecase.auth.SellerLoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ sealed class LoginEvent {
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
+    private val sellerLoginUseCase: SellerLoginUseCase,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -40,7 +42,7 @@ class LoginViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val result = authRepository.login(phone, password)
+            val result = sellerLoginUseCase(phone, password)
             result.fold(
                 onSuccess = {
                     _uiState.value = _uiState.value.copy(isLoading = false)
