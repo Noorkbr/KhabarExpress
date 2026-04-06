@@ -23,7 +23,10 @@ data class UpdateProfileRequest(
     val coverImage: String? = null,
     val logo: String? = null,
     val deliveryRadius: Double? = null,
-    val minOrderAmount: Double? = null
+    val minOrderAmount: Double? = null,
+    val openingTime: String? = null,
+    val closingTime: String? = null,
+    val openDays: List<String>? = null
 )
 
 @Serializable
