@@ -3,7 +3,7 @@ package com.khabarexpress.seller.presentation.earnings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.model.Analytics
-import com.khabarexpress.seller.domain.repository.RestaurantRepository
+import com.khabarexpress.seller.domain.usecase.dashboard.GetEarningsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -23,7 +23,7 @@ data class EarningsUiState(
 
 @HiltViewModel
 class EarningsViewModel @Inject constructor(
-    private val restaurantRepository: RestaurantRepository
+    private val getEarningsUseCase: GetEarningsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EarningsUiState())
@@ -38,9 +38,9 @@ class EarningsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             coroutineScope {
-                val todayDeferred = async { restaurantRepository.getAnalytics("today") }
-                val weekDeferred = async { restaurantRepository.getAnalytics("week") }
-                val monthDeferred = async { restaurantRepository.getAnalytics("month") }
+                val todayDeferred = async { getEarningsUseCase("today") }
+                val weekDeferred = async { getEarningsUseCase("week") }
+                val monthDeferred = async { getEarningsUseCase("month") }
 
                 todayDeferred.await().fold(
                     onSuccess = { _uiState.value = _uiState.value.copy(todayAnalytics = it) },

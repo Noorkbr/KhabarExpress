@@ -3,7 +3,11 @@ package com.khabarexpress.seller.presentation.menu
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khabarexpress.seller.domain.model.MenuItem
-import com.khabarexpress.seller.domain.repository.MenuRepository
+import com.khabarexpress.seller.domain.usecase.menu.AddMenuItemUseCase
+import com.khabarexpress.seller.domain.usecase.menu.DeleteMenuItemUseCase
+import com.khabarexpress.seller.domain.usecase.menu.GetMenuItemsUseCase
+import com.khabarexpress.seller.domain.usecase.menu.ToggleAvailabilityUseCase
+import com.khabarexpress.seller.domain.usecase.menu.UpdateMenuItemUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +29,11 @@ sealed class MenuEvent {
 
 @HiltViewModel
 class MenuViewModel @Inject constructor(
-    private val menuRepository: MenuRepository
+    private val getMenuItemsUseCase: GetMenuItemsUseCase,
+    private val addMenuItemUseCase: AddMenuItemUseCase,
+    private val updateMenuItemUseCase: UpdateMenuItemUseCase,
+    private val deleteMenuItemUseCase: DeleteMenuItemUseCase,
+    private val toggleAvailabilityUseCase: ToggleAvailabilityUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MenuUiState())
@@ -41,7 +49,7 @@ class MenuViewModel @Inject constructor(
     fun loadMenuItems() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            menuRepository.getMenuItems().fold(
+            getMenuItemsUseCase().fold(
                 onSuccess = { items ->
                     _uiState.value = _uiState.value.copy(isLoading = false, menuItems = items)
                 },
@@ -67,7 +75,7 @@ class MenuViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            menuRepository.createMenuItem(name, description, category, price, isAvailable, isHalal, spiceLevel, prepTime).fold(
+            addMenuItemUseCase(name, description, category, price, isAvailable, isHalal, spiceLevel, prepTime).fold(
                 onSuccess = {
                     _events.emit(MenuEvent.ShowSuccess("Menu item created"))
                     loadMenuItems()
@@ -89,7 +97,7 @@ class MenuViewModel @Inject constructor(
         isAvailable: Boolean? = null
     ) {
         viewModelScope.launch {
-            menuRepository.updateMenuItem(id, name, description, category, price, isAvailable).fold(
+            updateMenuItemUseCase(id, name, description, category, price, isAvailable).fold(
                 onSuccess = {
                     _events.emit(MenuEvent.ShowSuccess("Menu item updated"))
                     loadMenuItems()
@@ -103,7 +111,7 @@ class MenuViewModel @Inject constructor(
 
     fun toggleAvailability(id: String) {
         viewModelScope.launch {
-            menuRepository.toggleAvailability(id).fold(
+            toggleAvailabilityUseCase(id).fold(
                 onSuccess = {
                     _events.emit(MenuEvent.ShowSuccess("Availability updated"))
                     loadMenuItems()
@@ -117,7 +125,7 @@ class MenuViewModel @Inject constructor(
 
     fun deleteMenuItem(id: String) {
         viewModelScope.launch {
-            menuRepository.deleteMenuItem(id).fold(
+            deleteMenuItemUseCase(id).fold(
                 onSuccess = {
                     _events.emit(MenuEvent.ShowSuccess("Menu item deleted"))
                     loadMenuItems()
