@@ -55,10 +55,14 @@ const auth = async (req, res, next) => {
 // Admin authorization middleware
 const adminAuth = async (req, res, next) => {
   try {
-    // First run auth middleware
-    await auth(req, res, () => {});
-    
-    if (req.user.role !== 'admin') {
+    let authError = null;
+    await auth(req, res, (err) => { authError = err; });
+
+    // If auth sent a response already (e.g. 401), stop here
+    if (res.headersSent) return;
+    if (authError) return next(authError);
+
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required.',
