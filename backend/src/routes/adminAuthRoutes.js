@@ -10,7 +10,8 @@ const { protect } = require('../middleware/auth');
  */
 router.post('/login', async (req, res, next) => {
   try {
-    const { phone, password } = req.body;
+    const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : null;
+    const password = typeof req.body.password === 'string' ? req.body.password : null;
 
     if (!phone || !password) {
       return res.status(400).json({

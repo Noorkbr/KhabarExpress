@@ -5,7 +5,28 @@ const Rider = require('../models/Rider');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 
-// Get dashboard statistics
+// ── Helpers ────────────────────────────────────────────────────
+
+/** Escape regex-special characters to prevent ReDoS / NoSQL injection via $regex */
+const escapeRegex = (s) => String(s).replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
+
+/** Cast query param to string and reject objects / arrays from user input */
+const safeStr = (val) => (val && typeof val === 'string' ? val : null);
+
+/** Validate a date string and return a Date, or null */
+const safeDate = (val) => {
+  const d = new Date(safeStr(val) || '');
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// ── Enum allow-lists ──────────────────────────────────────────
+const ALLOWED_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way', 'delivered', 'cancelled'];
+const ALLOWED_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'];
+const ALLOWED_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+const ALLOWED_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
+const ALLOWED_RIDER_STATUSES = ['available', 'busy', 'offline'];
+const ALLOWED_USER_ROLES = ['customer', 'admin'];
+
 exports.getDashboardStats = async (req, res, next) => {
   try {
     const today = new Date();
@@ -660,15 +681,16 @@ exports.listUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const search = req.query.search || '';
-    const role = req.query.role;
+    const search = safeStr(req.query.search);
+    const role = ALLOWED_USER_ROLES.includes(safeStr(req.query.role)) ? safeStr(req.query.role) : null;
 
     const query = {};
     if (search) {
+      const escaped = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
       ];
     }
     if (role) query.role = role;
@@ -704,10 +726,12 @@ exports.getUserById = async (req, res, next) => {
 
 exports.updateUser = async (req, res, next) => {
   try {
-    const { role, isBanned } = req.body;
+    const roleInput = safeStr(req.body.role);
+    const role = ALLOWED_USER_ROLES.includes(roleInput) ? roleInput : undefined;
+    const { isBanned } = req.body;
     const update = {};
     if (role !== undefined) update.role = role;
-    if (isBanned !== undefined) update.isBanned = isBanned;
+    if (isBanned !== undefined) update.isBanned = Boolean(isBanned);
 
     const user = await User.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true }).select('-__v');
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -726,19 +750,26 @@ exports.listOrders = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const { status, paymentMethod, startDate, endDate, search } = req.query;
+    const statusRaw = safeStr(req.query.status);
+    const paymentMethodRaw = safeStr(req.query.paymentMethod);
+    const search = safeStr(req.query.search);
+
+    const status = ALLOWED_ORDER_STATUSES.includes(statusRaw) ? statusRaw : null;
+    const paymentMethod = ALLOWED_PAYMENT_METHODS.includes(paymentMethodRaw) ? paymentMethodRaw : null;
+    const startDate = safeDate(req.query.startDate);
+    const endDate = safeDate(req.query.endDate);
 
     const query = {};
     if (status) query.status = status;
     if (paymentMethod) query.paymentMethod = paymentMethod;
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+      if (startDate) query.createdAt.$gte = startDate;
+      if (endDate) query.createdAt.$lte = endDate;
     }
     if (search) {
       query.$or = [
-        { orderNumber: { $regex: search, $options: 'i' } },
+        { orderNumber: { $regex: escapeRegex(search), $options: 'i' } },
       ];
     }
 
@@ -780,7 +811,11 @@ exports.getOrderById = async (req, res, next) => {
 
 exports.updateOrderStatus = async (req, res, next) => {
   try {
-    const { status, cancellationReason } = req.body;
+    const statusRaw = safeStr(req.body.status);
+    const status = ALLOWED_ORDER_STATUSES.includes(statusRaw) ? statusRaw : null;
+    if (!status) return res.status(400).json({ success: false, message: 'Invalid status value' });
+
+    const cancellationReason = safeStr(req.body.cancellationReason);
     const update = { status };
     if (cancellationReason) update.cancellationReason = cancellationReason;
     update.$push = { statusHistory: { status, timestamp: new Date(), note: cancellationReason } };
@@ -802,14 +837,18 @@ exports.listRestaurants = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const { approvalStatus, search } = req.query;
+    const approvalStatusRaw = safeStr(req.query.approvalStatus);
+    const search = safeStr(req.query.search);
+
+    const approvalStatus = ALLOWED_APPROVAL_STATUSES.includes(approvalStatusRaw) ? approvalStatusRaw : null;
 
     const query = {};
     if (approvalStatus) query.approvalStatus = approvalStatus;
     if (search) {
+      const escaped = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
       ];
     }
 
@@ -832,7 +871,10 @@ exports.listRestaurants = async (req, res, next) => {
 
 exports.updateRestaurantStatus = async (req, res, next) => {
   try {
-    const { approvalStatus, isActive, rejectionReason } = req.body;
+    const approvalStatusRaw = safeStr(req.body.approvalStatus);
+    const approvalStatus = ALLOWED_APPROVAL_STATUSES.includes(approvalStatusRaw) ? approvalStatusRaw : undefined;
+    const isActive = req.body.isActive !== undefined ? Boolean(req.body.isActive) : undefined;
+    const rejectionReason = safeStr(req.body.rejectionReason);
     const update = {};
     if (approvalStatus !== undefined) update.approvalStatus = approvalStatus;
     if (isActive !== undefined) update.isActive = isActive;
@@ -855,14 +897,18 @@ exports.listRiders = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const { status, search } = req.query;
+    const statusRaw = safeStr(req.query.status);
+    const search = safeStr(req.query.search);
+
+    const status = ALLOWED_RIDER_STATUSES.includes(statusRaw) ? statusRaw : null;
 
     const query = {};
     if (status) query.status = status;
     if (search) {
+      const escaped = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
       ];
     }
 
@@ -891,15 +937,21 @@ exports.listPayments = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const { method, status, startDate, endDate } = req.query;
+    const methodRaw = safeStr(req.query.method);
+    const statusRaw = safeStr(req.query.status);
+
+    const method = ALLOWED_PAYMENT_METHODS.includes(methodRaw) ? methodRaw : null;
+    const status = ALLOWED_PAYMENT_STATUSES.includes(statusRaw) ? statusRaw : null;
+    const startDate = safeDate(req.query.startDate);
+    const endDate = safeDate(req.query.endDate);
 
     const query = {};
     if (method) query.method = method;
     if (status) query.status = status;
     if (startDate || endDate) {
       query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+      if (startDate) query.createdAt.$gte = startDate;
+      if (endDate) query.createdAt.$lte = endDate;
     }
 
     const total = await Payment.countDocuments(query);

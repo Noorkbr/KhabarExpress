@@ -7,7 +7,7 @@ import Spinner from '../components/shared/Spinner';
 export default function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
-  const [phone, setPhone] = useState('+8801883688374');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
