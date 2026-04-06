@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const restaurantController = require('../controllers/restaurantController');
 const { auth, adminAuth, restaurantAuth } = require('../middleware/auth');
+const { searchLimiter } = require('../middleware/rateLimiter');
 
 // Public routes
 router.get('/', restaurantController.getRestaurants);
 router.get('/featured', restaurantController.getFeaturedRestaurants);
-router.get('/search', restaurantController.searchAll);
+router.get('/search', searchLimiter, restaurantController.searchAll);
 router.get('/:id', restaurantController.getRestaurantById);
 
 // Restaurant self-service routes
