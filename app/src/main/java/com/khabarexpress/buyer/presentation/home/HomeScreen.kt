@@ -22,36 +22,26 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.khabarexpress.buyer.domain.model.Restaurant
 import com.khabarexpress.buyer.navigation.Screen
 import com.khabarexpress.buyer.ui.theme.*
 import com.khabarexpress.buyer.util.Constants
-import com.khabarexpress.buyer.util.SampleData
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val scrollState = rememberScrollState()
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("All") }
     
-    // TODO: Replace with ViewModel and proper data loading
-    // For production: Implement HomeViewModel with StateFlow for restaurants
-    // and handle loading, success, and error states
-    // Example:
-    // val uiState by viewModel.restaurantsState.collectAsState()
-    // when (uiState) {
-    //     is Loading -> ShowLoadingShimmer()
-    //     is Success -> ShowRestaurantList(data)
-    //     is Error -> ShowErrorMessage()
-    // }
-    // Currently using sample data for UI demonstration
-    val restaurants = remember { SampleData.getBangladeshRestaurants() }
+    val uiState by viewModel.uiState.collectAsState()
     val categories = Constants.Cuisines.CATEGORIES
     
     Scaffold(
@@ -102,20 +92,65 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            restaurants.forEach { restaurant ->
-                RestaurantCard(
-                    restaurant = restaurant,
-                    onClick = {
-                        navController.navigate(Screen.RestaurantDetails.createRoute(restaurant.id))
-                    },
-                    onFavoriteClick = {
-                        // In production: Call ViewModel to persist favorite state to database
-                        // The RestaurantCard handles visual toggle internally
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
+            when (val state = uiState) {
+                is HomeUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Primary)
+                    }
+                }
+                is HomeUiState.Empty -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No restaurants found",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Gray
+                        )
+                    }
+                }
+                is HomeUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { viewModel.retry() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                is HomeUiState.Success -> {
+                    state.filteredRestaurants.forEach { restaurant ->
+                        RestaurantCard(
+                            restaurant = restaurant,
+                            onClick = {
+                                navController.navigate(Screen.RestaurantDetails.createRoute(restaurant.id))
+                            },
+                            onFavoriteClick = {
+                                viewModel.toggleFavorite(restaurant.id)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(24.dp))

@@ -31,6 +31,14 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // API Base URL — override via gradle property or environment variable
+        // e.g. ./gradlew assembleDebug -PAPI_BASE_URL=https://your-backend.com/api/v1/
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${project.findProperty("API_BASE_URL") ?: System.getenv("API_BASE_URL") ?: "https://khabarexpress-production.up.railway.app/api/v1/"}\""
+        )
     }
 
     signingConfigs {

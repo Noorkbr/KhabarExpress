@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.khabarexpress.buyer.domain.model.*
@@ -26,18 +27,21 @@ import com.khabarexpress.buyer.util.Constants
 @Composable
 fun CartScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: CartViewModel = hiltViewModel()
 ) {
-    // TODO: Replace with ViewModel in production
-    var cartItems by remember { mutableStateOf(getSampleCartItems()) }
-    val deliveryFee = 20.0
-    val subtotal = cartItems.sumOf { it.totalPrice }
-    val total = subtotal + deliveryFee
+    val uiState by viewModel.uiState.collectAsState()
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cart (${cartItems.size} items)") },
+                title = {
+                    val itemCount = when (val state = uiState) {
+                        is CartUiState.Success -> state.cart.items.size
+                        else -> 0
+                    }
+                    Text("Cart ($itemCount items)")
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -46,114 +50,137 @@ fun CartScreen(
             )
         }
     ) { paddingValues ->
-        if (cartItems.isEmpty()) {
-            // Empty cart state
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ShoppingCart,
-                    contentDescription = null,
-                    modifier = Modifier.size(120.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Your cart is empty",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Add items to get started",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { navController.navigate(Screen.Home.route) }) {
-                    Text("Browse Restaurants")
+        when (val state = uiState) {
+            is CartUiState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
                 }
             }
-        } else {
-            Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            is CartUiState.Empty -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    items(cartItems, key = { it.id }) { item ->
-                        CartItemCard(
-                            item = item,
-                            onIncreaseQuantity = {
-                                cartItems = cartItems.map {
-                                    if (it.id == item.id) it.copy(quantity = it.quantity + 1)
-                                    else it
-                                }
-                            },
-                            onDecreaseQuantity = {
-                                if (item.quantity > 1) {
-                                    cartItems = cartItems.map {
-                                        if (it.id == item.id) it.copy(quantity = it.quantity - 1)
-                                        else it
-                                    }
-                                } else {
-                                    cartItems = cartItems.filter { it.id != item.id }
-                                }
-                            },
-                            onRemoveItem = {
-                                cartItems = cartItems.filter { it.id != item.id }
-                            }
-                        )
+                    Icon(
+                        imageVector = Icons.Filled.ShoppingCart,
+                        contentDescription = null,
+                        modifier = Modifier.size(120.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Your cart is empty",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Add items to get started",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(onClick = { navController.navigate(Screen.Home.route) }) {
+                        Text("Browse Restaurants")
                     }
                 }
-                
-                // Price Summary
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            }
+            is CartUiState.Error -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { viewModel.retry() }) {
+                        Text("Retry")
+                    }
+                }
+            }
+            is CartUiState.Success -> {
+                val cartItems = state.cart.items
+                val totals = state.totals
+                Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        PriceRow("Subtotal", subtotal)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        PriceRow("Delivery Fee", deliveryFee)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Total",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${Constants.CURRENCY_SYMBOL}${"%.2f".format(total)}",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Primary
+                        items(cartItems, key = { it.id }) { item ->
+                            CartItemCard(
+                                item = item,
+                                onIncreaseQuantity = {
+                                    viewModel.updateQuantity(item.id, item.quantity + 1)
+                                },
+                                onDecreaseQuantity = {
+                                    viewModel.updateQuantity(item.id, item.quantity - 1)
+                                },
+                                onRemoveItem = {
+                                    viewModel.removeItem(item.id)
+                                }
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { navController.navigate(Screen.Checkout.route) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    }
+
+                    // Price Summary
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(20.dp)
                         ) {
-                            Text("Proceed to Checkout", style = MaterialTheme.typography.titleMedium)
+                            PriceRow("Subtotal", totals.subtotal)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            PriceRow("Delivery Fee", totals.deliveryFee)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "Total",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "${Constants.CURRENCY_SYMBOL}${"%.2f".format(totals.total)}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { navController.navigate(Screen.Checkout.route) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            ) {
+                                Text("Proceed to Checkout", style = MaterialTheme.typography.titleMedium)
+                            }
                         }
                     }
                 }
@@ -257,32 +284,3 @@ fun PriceRow(label: String, amount: Double) {
         )
     }
 }
-
-// Sample data
-fun getSampleCartItems() = listOf(
-    CartItem(
-        id = "1",
-        menuItem = MenuItem(
-            id = "1",
-            name = "Margherita Pizza",
-            description = "Classic pizza with tomato sauce and mozzarella",
-            price = 299.0,
-            imageUrl = "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400",
-            isVegetarian = true
-        ),
-        quantity = 2
-    ),
-    CartItem(
-        id = "2",
-        menuItem = MenuItem(
-            id = "2",
-            name = "Garlic Bread",
-            description = "Crispy bread with garlic butter",
-            price = 99.0,
-            imageUrl = "https://images.unsplash.com/photo-1573140401552-388e8e2940c9?w=400",
-            isVegetarian = true
-        ),
-        quantity = 1,
-        specialInstructions = "Extra cheese please"
-    )
-)

@@ -189,25 +189,30 @@ A full-featured web admin dashboard is available at `admin-panel/`.
 ### Setup
 
 ```bash
-# 1. Seed the admin user (run once)
+# 1. Set the required environment variables and seed the admin user (run once)
 cd backend
-node src/seeds/seedAdmin.js
+cp .env.example .env
+# Edit .env to set DATABASE_URL, JWT_SECRET, REFRESH_TOKEN_SECRET, ADMIN_PHONE, ADMIN_DEFAULT_PASSWORD
+ADMIN_PHONE='+880XXXXXXXXXX' ADMIN_DEFAULT_PASSWORD='YourStrongPassword' node src/seeds/seedAdmin.js
 
 # 2. Start the admin panel
-cd admin-panel
+cd ../admin-panel
 npm install
 cp .env.example .env
+# In production: set VITE_API_URL in .env to your deployed backend URL (e.g. https://your-backend.com/api/v1)
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-### Default Admin Credentials
+### Admin Credentials
 
-| Field    | Value              |
-|----------|--------------------|
-| Phone    | `+8801883688374`   |
-| Password | `16741210@Noor`    |
+Set via environment variables when running the seed script:
+
+| Variable | Description |
+|----------|-------------|
+| `ADMIN_PHONE` | Phone number for admin login (e.g. `+880XXXXXXXXXX`) |
+| `ADMIN_DEFAULT_PASSWORD` | Admin password (use a strong password) |
 
 ### Features
 
@@ -225,6 +230,99 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 | ⚙️ Settings    | Platform config, payment gateway toggles     |
 
 See [admin-panel/README.md](admin-panel/README.md) for full documentation.
+
+---
+
+## 🚀 Full End-to-End Setup Guide
+
+Follow these steps to set up and run the complete KhabarExpress platform (backend, admin panel, and Android apps).
+
+### Prerequisites
+- **Node.js** 20+ and npm
+- **MongoDB** (local or [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+- **Android Studio** Meerkat (2024.3.1) or newer
+- **JDK 11+**
+
+### Step 1: Backend Setup
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `backend/.env` and configure **at minimum**:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | MongoDB connection string (e.g. `mongodb+srv://user:pass@cluster.mongodb.net/khabarexpress`) |
+| `JWT_SECRET` | Strong random string (32+ chars) |
+| `REFRESH_TOKEN_SECRET` | Strong random string (32+ chars) |
+| `ADMIN_PHONE` | Admin phone number for login |
+| `ADMIN_DEFAULT_PASSWORD` | Admin account password |
+
+Then install, seed, and start:
+
+```bash
+npm install
+# Seed admin user (uses ADMIN_PHONE and ADMIN_DEFAULT_PASSWORD from .env)
+node src/seeds/seedAdmin.js
+# Optionally seed sample data (zones, test restaurant)
+node src/seeds/seed.js
+# Start the server
+npm start
+# Verify
+curl http://localhost:3000/health
+```
+
+For **production deployment** (Railway, Render, etc.), set all environment variables from `.env.example` in your hosting provider and deploy the `backend/` directory.
+
+### Step 2: Admin Panel Setup
+
+```bash
+cd admin-panel
+npm install
+cp .env.example .env
+```
+
+For **local development** (backend on localhost:3000), the default `.env` works as-is.  
+For **production**, set `VITE_API_URL` to your deployed backend:
+
+```
+VITE_API_URL=https://YOUR-BACKEND-URL/api/v1
+```
+
+```bash
+npm run dev
+# Open http://localhost:5173
+# Login with the phone and password set in Step 1
+```
+
+### Step 3: Android App Setup
+
+The API base URL is configurable via Gradle properties or environment variables:
+
+```bash
+# Build Buyer App with custom API URL
+./gradlew :app:assembleDebug -PAPI_BASE_URL=https://YOUR-BACKEND-URL/
+
+# Build Seller App with custom API URL
+./gradlew :restaurant-app:assembleDebug -PAPI_BASE_URL=https://YOUR-BACKEND-URL/api/v1/
+```
+
+If no `API_BASE_URL` is provided, the default Railway URL is used.
+
+For **Firebase** (push notifications), place your `google-services.json` in `app/` and `restaurant-app/`.
+
+### Step 4: Testing
+
+```bash
+# Backend tests
+cd backend && npm test
+
+# Android builds
+./gradlew :app:assembleDebug
+./gradlew :restaurant-app:assembleDebug
+```
 
 ---
 
