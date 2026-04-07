@@ -16,29 +16,105 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.khabarexpress.buyer.domain.model.*
 import com.khabarexpress.buyer.navigation.Screen
 import com.khabarexpress.buyer.ui.theme.*
 import com.khabarexpress.buyer.util.Constants
-import com.khabarexpress.buyer.util.SampleData
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RestaurantDetailsScreen(
     restaurantId: String,
     navController: NavController,
+    modifier: Modifier = Modifier,
+    viewModel: RestaurantViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(restaurantId) {
+        viewModel.loadRestaurantDetails(restaurantId)
+        viewModel.checkFavoriteStatus(restaurantId)
+    }
+
+    when (val state = uiState) {
+        is RestaurantDetailUiState.Loading -> {
+            Scaffold { paddingValues ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+        }
+        is RestaurantDetailUiState.Error -> {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("") },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    )
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = state.message,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = { viewModel.retry(restaurantId) }) {
+                        Text("Retry")
+                    }
+                }
+            }
+        }
+        is RestaurantDetailUiState.Success -> {
+            RestaurantDetailsContent(
+                restaurant = state.restaurant,
+                isFavorite = state.isFavorite,
+                navController = navController,
+                onFavoriteClick = { viewModel.toggleFavorite(restaurantId) },
+                onAddToCart = { menuItem ->
+                    val cartItem = CartItem(
+                        id = menuItem.id,
+                        menuItem = menuItem,
+                        quantity = 1
+                    )
+                    viewModel.addToCart(cartItem)
+                },
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RestaurantDetailsContent(
+    restaurant: Restaurant,
+    isFavorite: Boolean,
+    navController: NavController,
+    onFavoriteClick: () -> Unit,
+    onAddToCart: (MenuItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // TODO: Replace with ViewModel and fetch restaurant by ID
-    val restaurant = remember { 
-        SampleData.getBangladeshRestaurants().find { it.id == restaurantId } 
-            ?: SampleData.getBangladeshRestaurants().first()
-    }
-    
-    var isFavorite by remember { mutableStateOf(false) }
-    // Initial cart count - in production this would come from a ViewModel/Repository
     var cartItemCount by remember { mutableStateOf(0) }
     
     Scaffold(
@@ -51,10 +127,7 @@ fun RestaurantDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { 
-                        isFavorite = !isFavorite
-                        // In production: Call ViewModel to toggle favorite
-                    }) {
+                    IconButton(onClick = onFavoriteClick) {
                         Icon(
                             if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
@@ -149,7 +222,7 @@ fun RestaurantDetailsScreen(
                         item = menuItem,
                         onAddToCart = { 
                             cartItemCount++
-                            // In production: Call ViewModel to add item to cart
+                            onAddToCart(menuItem)
                         }
                     )
                 }

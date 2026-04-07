@@ -186,19 +186,9 @@ class CartRepositoryImpl @Inject constructor(
      */
     override suspend fun applyPromoCode(code: String): Result<PromoCode> {
         return try {
-            // TODO: Call API to validate promo code
-            // For now, return a mock promo code
-            val promoCode = PromoCode(
-                code = code,
-                description = "Sample Promo",
-                discountType = DiscountType.PERCENTAGE,
-                discountValue = 10.0,
-                minOrderAmount = 100.0,
-                maxDiscount = 50.0,
-                validUntil = System.currentTimeMillis() + 86400000, // 24 hours
-                isActive = true
-            )
-            Result.success(promoCode)
+            // Promo code validation requires backend API call
+            // POST /api/v1/promo-codes/validate { code, orderAmount }
+            Result.failure(Exception("Promo code validation requires a backend connection. Please ensure the API is configured."))
         } catch (e: Exception) {
             Result.failure(Exception("Invalid promo code: ${e.message}", e))
         }
@@ -209,7 +199,6 @@ class CartRepositoryImpl @Inject constructor(
      */
     override suspend fun removePromoCode(): Result<Unit> {
         return try {
-            // TODO: Remove promo code from cart state
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(Exception("Failed to remove promo code: ${e.message}", e))
@@ -221,23 +210,9 @@ class CartRepositoryImpl @Inject constructor(
      */
     override suspend fun validatePromoCode(code: String, orderAmount: Double): Result<PromoCode> {
         return try {
-            // TODO: Call API to validate promo code with order amount
-            val promoCode = PromoCode(
-                code = code,
-                description = "Sample Promo",
-                discountType = DiscountType.PERCENTAGE,
-                discountValue = 10.0,
-                minOrderAmount = 100.0,
-                maxDiscount = 50.0,
-                validUntil = System.currentTimeMillis() + 86400000,
-                isActive = true
-            )
-            
-            if (orderAmount < promoCode.minOrderAmount) {
-                Result.failure(Exception("Minimum order amount not met"))
-            } else {
-                Result.success(promoCode)
-            }
+            // Promo code validation requires backend API call
+            // POST /api/v1/promo-codes/validate { code, orderAmount }
+            Result.failure(Exception("Promo code validation requires a backend connection. Please ensure the API is configured."))
         } catch (e: Exception) {
             Result.failure(Exception("Failed to validate promo code: ${e.message}", e))
         }
