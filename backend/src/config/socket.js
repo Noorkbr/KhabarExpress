@@ -3,10 +3,16 @@ const { Server } = require('socket.io');
 let io;
 
 const setupSocket = (server) => {
+  const rawOrigins = process.env.CORS_ORIGIN || '*';
+  const origins = rawOrigins === '*'
+    ? '*'
+    : rawOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: origins,
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
