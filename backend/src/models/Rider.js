@@ -71,6 +71,11 @@ const riderSchema = new mongoose.Schema({
     bkashNumber: String,
     nagadNumber: String,
   },
+  isApproved: {
+    type: Boolean,
+    default: false,
+  },
+  suspensionReason: String,
   isActive: {
     type: Boolean,
     default: true,

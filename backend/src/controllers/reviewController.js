@@ -18,7 +18,7 @@ exports.createReview = async (req, res, next) => {
       });
     }
 
-    if (order.userId.toString() !== req.user.userId) {
+    if (order.user.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to review this order',
@@ -44,9 +44,9 @@ exports.createReview = async (req, res, next) => {
     // Create review
     const newReview = await Review.create({
       order: orderId,
-      user: req.user.userId,
-      restaurant: order.restaurantId,
-      rider: order.riderId,
+      user: req.userId,
+      restaurant: order.restaurant,
+      rider: order.rider,
       foodRating,
       deliveryRating,
       review,
@@ -55,18 +55,18 @@ exports.createReview = async (req, res, next) => {
     });
 
     // Update restaurant rating
-    const restaurantReviews = await Review.find({ restaurant: order.restaurantId });
+    const restaurantReviews = await Review.find({ restaurant: order.restaurant });
     const avgRating = restaurantReviews.reduce((sum, r) => sum + r.foodRating, 0) / restaurantReviews.length;
-    await Restaurant.findByIdAndUpdate(order.restaurantId, {
+    await Restaurant.findByIdAndUpdate(order.restaurant, {
       rating: avgRating,
       totalReviews: restaurantReviews.length,
     });
 
     // Update rider rating if delivery rating provided
-    if (deliveryRating && order.riderId) {
-      const riderReviews = await Review.find({ rider: order.riderId, deliveryRating: { $exists: true } });
+    if (deliveryRating && order.rider) {
+      const riderReviews = await Review.find({ rider: order.rider, deliveryRating: { $exists: true } });
       const avgDeliveryRating = riderReviews.reduce((sum, r) => sum + r.deliveryRating, 0) / riderReviews.length;
-      await Rider.findByIdAndUpdate(order.riderId, {
+      await Rider.findByIdAndUpdate(order.rider, {
         rating: avgDeliveryRating,
         totalReviews: riderReviews.length,
       });
@@ -131,14 +131,14 @@ exports.getUserReviews = async (req, res, next) => {
     const { page = 1, limit = 20 } = req.query;
     const skip = (page - 1) * limit;
 
-    const reviews = await Review.find({ user: req.user.userId })
+    const reviews = await Review.find({ user: req.userId })
       .populate('restaurant', 'name logo')
       .populate('order', 'orderNumber totalAmount')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Review.countDocuments({ user: req.user.userId });
+    const total = await Review.countDocuments({ user: req.userId });
 
     res.json({
       success: true,
@@ -170,7 +170,7 @@ exports.updateReview = async (req, res, next) => {
       });
     }
 
-    if (existingReview.user.toString() !== req.user.userId) {
+    if (existingReview.user.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this review',
@@ -225,7 +225,7 @@ exports.deleteReview = async (req, res, next) => {
       });
     }
 
-    if (review.user.toString() !== req.user.userId) {
+    if (review.user.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this review',
@@ -283,7 +283,7 @@ exports.respondToReview = async (req, res, next) => {
 
     // Check if user owns the restaurant
     const restaurant = await Restaurant.findById(review.restaurant);
-    if (restaurant.ownerId.toString() !== req.user.userId) {
+    if (!restaurant || !restaurant.owner || restaurant.owner.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to respond to this review',

@@ -106,6 +106,8 @@ const orderSchema = new mongoose.Schema({
   scheduledFor: Date,
   estimatedDelivery: Date,
   actualDelivery: Date,
+  deliveredAt: Date,
+  deliveryProof: String,
   cancellationReason: String,
   rating: {
     foodRating: Number,

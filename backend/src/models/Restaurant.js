@@ -112,6 +112,10 @@ const restaurantSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
   totalOrders: {
     type: Number,
     default: 0,

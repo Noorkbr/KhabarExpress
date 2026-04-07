@@ -156,16 +156,20 @@ exports.updateLocation = async (req, res, next) => {
 
     // Emit location update via Socket.IO for active deliveries
     const activeOrder = await Order.findOne({
-      riderId: req.user.riderId,
+      rider: req.user.riderId,
       status: { $in: ['picked_up', 'on_the_way'] },
     });
 
     if (activeOrder) {
-      const io = getIO();
-      io.to(`order_${activeOrder._id}`).emit('riderLocationUpdate', {
-        riderId: rider._id,
-        location: { latitude, longitude },
-      });
+      try {
+        const io = getIO();
+        io.of('/order').to(`order:${activeOrder._id}`).emit('riderLocationUpdate', {
+          riderId: rider._id,
+          location: { latitude, longitude },
+        });
+      } catch (socketErr) {
+        console.error('Socket emit error:', socketErr.message);
+      }
     }
 
     res.json({
@@ -199,10 +203,10 @@ exports.getAvailableOrders = async (req, res, next) => {
     // Find orders that are ready for pickup and don't have a rider assigned
     const orders = await Order.find({
       status: 'ready',
-      riderId: null,
+      rider: null,
     })
-      .populate('restaurantId', 'name location phone')
-      .populate('userId', 'name phone')
+      .populate('restaurant', 'name location phone')
+      .populate('user', 'name phone')
       .sort({ createdAt: 1 })
       .limit(10);
 
@@ -228,7 +232,7 @@ exports.acceptOrder = async (req, res, next) => {
       });
     }
 
-    if (order.riderId) {
+    if (order.rider) {
       return res.status(400).json({
         success: false,
         message: 'Order already assigned to a rider',
@@ -243,7 +247,7 @@ exports.acceptOrder = async (req, res, next) => {
     }
 
     // Assign rider to order
-    order.riderId = req.user.riderId;
+    order.rider = req.user.riderId;
     order.status = 'picked_up';
     await order.save();
 
@@ -251,12 +255,16 @@ exports.acceptOrder = async (req, res, next) => {
     await Rider.findByIdAndUpdate(req.user.riderId, { status: 'busy' });
 
     // Emit order update via Socket.IO
-    const io = getIO();
-    io.to(`order_${order._id}`).emit('orderStatusUpdate', {
-      orderId: order._id,
-      status: 'picked_up',
-      riderId: req.user.riderId,
-    });
+    try {
+      const io = getIO();
+      io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
+        orderId: order._id,
+        status: 'picked_up',
+        riderId: req.user.riderId,
+      });
+    } catch (socketErr) {
+      console.error('Socket emit error:', socketErr.message);
+    }
 
     res.json({
       success: true,
@@ -282,7 +290,7 @@ exports.updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    if (order.riderId.toString() !== req.user.riderId) {
+    if (order.rider?.toString() !== req.user.riderId) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this order',
@@ -315,11 +323,15 @@ exports.updateOrderStatus = async (req, res, next) => {
     await order.save();
 
     // Emit order update via Socket.IO
-    const io = getIO();
-    io.to(`order_${order._id}`).emit('orderStatusUpdate', {
-      orderId: order._id,
-      status: order.status,
-    });
+    try {
+      const io = getIO();
+      io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
+        orderId: order._id,
+        status: order.status,
+      });
+    } catch (socketErr) {
+      console.error('Socket emit error:', socketErr.message);
+    }
 
     res.json({
       success: true,
@@ -337,7 +349,7 @@ exports.getEarnings = async (req, res, next) => {
     const { startDate, endDate } = req.query;
 
     const query = {
-      riderId: req.user.riderId,
+      rider: req.user.riderId,
       status: 'delivered',
     };
 
@@ -377,17 +389,17 @@ exports.getDeliveryHistory = async (req, res, next) => {
     const skip = (page - 1) * limit;
 
     const orders = await Order.find({
-      riderId: req.user.riderId,
+      rider: req.user.riderId,
       status: 'delivered',
     })
-      .populate('restaurantId', 'name')
-      .populate('userId', 'name')
+      .populate('restaurant', 'name')
+      .populate('user', 'name')
       .sort({ deliveredAt: -1 })
       .skip(skip)
       .limit(limit);
 
     const total = await Order.countDocuments({
-      riderId: req.user.riderId,
+      rider: req.user.riderId,
       status: 'delivered',
     });
 
@@ -416,7 +428,7 @@ exports.getRiderStats = async (req, res, next) => {
     today.setHours(0, 0, 0, 0);
 
     const todayDeliveries = await Order.countDocuments({
-      riderId: req.user.riderId,
+      rider: req.user.riderId,
       status: 'delivered',
       deliveredAt: { $gte: today },
     });
@@ -424,7 +436,7 @@ exports.getRiderStats = async (req, res, next) => {
     const todayEarnings = await Order.aggregate([
       {
         $match: {
-          riderId: new mongoose.Types.ObjectId(req.user.riderId),
+          rider: new mongoose.Types.ObjectId(req.user.riderId),
           status: 'delivered',
           deliveredAt: { $gte: today },
         },
@@ -457,12 +469,15 @@ exports.getRiderStats = async (req, res, next) => {
 // Admin: Get all riders
 exports.getAllRiders = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, zone, isApproved } = req.query;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit: rawLimit = 20, status, zone, isApproved } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 20, 100);
+    const skip = (parseInt(page) - 1) * limit;
 
+    // Validate and whitelist query filters
+    const VALID_STATUSES = ['offline', 'available', 'busy', 'on_break'];
     const query = {};
-    if (status) query.status = status;
-    if (zone) query.zone = zone;
+    if (typeof status === 'string' && VALID_STATUSES.includes(status)) query.status = status;
+    if (typeof zone === 'string' && zone.length <= 100) query.zone = zone;
     if (isApproved !== undefined) query.isApproved = isApproved === 'true';
 
     const riders = await Rider.find(query)
