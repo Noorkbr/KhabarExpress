@@ -1,12 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
-
-// Hardcoded admin credentials
-const ADMIN_PHONE = '+8801883688374';
-const ADMIN_PASSWORD = 'admin123';
-const MOCK_TOKEN = 'hardcoded-admin-token';
-const MOCK_USER = { name: 'Admin', phone: ADMIN_PHONE, role: 'admin' };
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -20,29 +15,33 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
-    if (token === MOCK_TOKEN) {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('admin_user'));
-        setUser(storedUser || MOCK_USER);
-      } catch {
-        setUser(MOCK_USER);
-      }
+    if (token) {
+      // Validate token by fetching current admin profile
+      api.get('/admin/auth/me')
+        .then(({ data }) => {
+          const userData = data.data;
+          localStorage.setItem('admin_user', JSON.stringify(userData));
+          setUser(userData);
+        })
+        .catch(() => {
+          // Token invalid or expired — clear session
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_user');
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
     } else {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
-      setUser(null);
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (phone, password) => {
-    if (phone === ADMIN_PHONE && password === ADMIN_PASSWORD) {
-      localStorage.setItem('admin_token', MOCK_TOKEN);
-      localStorage.setItem('admin_user', JSON.stringify(MOCK_USER));
-      setUser(MOCK_USER);
-      return MOCK_USER;
-    }
-    throw new Error('Invalid phone number or password');
+    const { data } = await api.post('/admin/auth/login', { phone, password });
+    const { token, user: userData } = data.data;
+    localStorage.setItem('admin_token', token);
+    localStorage.setItem('admin_user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {

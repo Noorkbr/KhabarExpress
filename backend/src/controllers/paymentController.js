@@ -33,7 +33,7 @@ exports.createPayment = async (req, res, next) => {
     }
 
     // Check if order belongs to user
-    if (order.userId.toString() !== req.user.userId) {
+    if (order.user.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized',
@@ -56,8 +56,8 @@ exports.createPayment = async (req, res, next) => {
     // Create payment record
     const payment = await Payment.create({
       order: orderId,
-      user: req.user.userId,
-      amount: order.totalAmount,
+      user: req.userId,
+      amount: order.total,
       method,
       status: 'initiated',
     });
@@ -68,7 +68,7 @@ exports.createPayment = async (req, res, next) => {
     switch (method) {
       case 'bkash':
         paymentResponse = await bkashService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
         });
@@ -82,7 +82,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'nagad':
         paymentResponse = await nagadService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
         });
@@ -96,7 +96,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'rocket':
         paymentResponse = await rocketService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerPhone: req.user.phone,
@@ -112,7 +112,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'upay':
         paymentResponse = await upayService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerPhone: req.user.phone,
@@ -128,11 +128,11 @@ exports.createPayment = async (req, res, next) => {
 
       case 'card':
         paymentResponse = await sslCommerzService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerName: req.user.name,
-          customerEmail: req.user.email || `user${req.user.userId}@khabarexpress.com`,
+          customerEmail: req.user.email || `user${req.userId}@khabarexpress.com`,
           customerPhone: req.user.phone,
           returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
         });
@@ -218,7 +218,7 @@ exports.bkashCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -280,7 +280,7 @@ exports.nagadCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -342,7 +342,7 @@ exports.sslCommerzCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -411,7 +411,7 @@ exports.rocketCallback = async (req, res, next) => {
 
           // Emit order update
           const io = getIO();
-          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+          io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
             orderId: order._id,
             status: 'confirmed',
             paymentStatus: 'paid',
@@ -481,7 +481,7 @@ exports.upayCallback = async (req, res, next) => {
 
           // Emit order update
           const io = getIO();
-          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+          io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
             orderId: order._id,
             status: 'confirmed',
             paymentStatus: 'paid',
@@ -540,13 +540,13 @@ exports.getPaymentHistory = async (req, res, next) => {
     const { page = 1, limit = 20 } = req.query;
     const skip = (page - 1) * limit;
 
-    const payments = await Payment.find({ user: req.user.userId })
+    const payments = await Payment.find({ user: req.userId })
       .populate('order', 'orderNumber totalAmount createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await Payment.countDocuments({ user: req.user.userId });
+    const total = await Payment.countDocuments({ user: req.userId });
 
     res.json({
       success: true,
