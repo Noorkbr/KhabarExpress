@@ -2,7 +2,7 @@ const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
 
 /** Escape regex-special characters to prevent ReDoS */
-const escapeRegex = (s) => String(s).replace(/[$()*+.?[\\\]^{|}]/g, '\\$&');
+const escapeRegex = (s) => String(s).replace(/[-$()*+.?[\\\]^{|}]/g, '\\$&');
 
 // Get restaurants (with filters and pagination)
 exports.getRestaurants = async (req, res, next) => {

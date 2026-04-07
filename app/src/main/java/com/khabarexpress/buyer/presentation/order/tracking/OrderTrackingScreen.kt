@@ -138,8 +138,8 @@ fun OrderTrackingScreen(
                             riderLongitude = riderLongitude,
                             destinationLatitude = destinationLatitude,
                             destinationLongitude = destinationLongitude,
-                            restaurantLatitude = 0.0,
-                            restaurantLongitude = 0.0,
+                            restaurantLatitude = order.restaurant.latitude,
+                            restaurantLongitude = order.restaurant.longitude,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

@@ -46,10 +46,22 @@ class OrderRepositoryImpl @Inject constructor(
             }
             
             val orderItems = cartItems.map { entity ->
+                // Parse customization IDs from the stored JSON
+                val customizationIds = try {
+                    if (entity.customizations.isNullOrEmpty()) {
+                        emptyList()
+                    } else {
+                        kotlinx.serialization.json.Json.decodeFromString<List<com.khabarexpress.buyer.domain.model.SelectedCustomization>>(entity.customizations)
+                            .map { it.choice.id }
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                
                 OrderItemRequest(
                     menuItemId = entity.menuItemId,
                     quantity = entity.quantity,
-                    customizations = emptyList()
+                    customizations = customizationIds
                 )
             }
             
