@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+const AuthContext = createContext(null);
+
+// Hardcoded admin credentials
 const ADMIN_PHONE = '+8801883688374';
 const ADMIN_PASSWORD = 'admin123';
-
-const AuthContext = createContext(null);
+const MOCK_TOKEN = 'hardcoded-admin-token';
+const MOCK_USER = { name: 'Admin', phone: ADMIN_PHONE, role: 'admin' };
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -17,28 +20,29 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
-    if (token) {
+    if (token === MOCK_TOKEN) {
       try {
         const storedUser = JSON.parse(localStorage.getItem('admin_user'));
-        setUser(storedUser);
+        setUser(storedUser || MOCK_USER);
       } catch {
-        localStorage.removeItem('admin_token');
-        localStorage.removeItem('admin_user');
-        setUser(null);
+        setUser(MOCK_USER);
       }
+    } else {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      setUser(null);
     }
     setLoading(false);
   }, []);
 
   const login = async (phone, password) => {
-    if (phone !== ADMIN_PHONE || password !== ADMIN_PASSWORD) {
-      throw new Error('Invalid credentials');
+    if (phone === ADMIN_PHONE && password === ADMIN_PASSWORD) {
+      localStorage.setItem('admin_token', MOCK_TOKEN);
+      localStorage.setItem('admin_user', JSON.stringify(MOCK_USER));
+      setUser(MOCK_USER);
+      return MOCK_USER;
     }
-    const mockUser = { phone: ADMIN_PHONE, role: 'admin', name: 'Admin' };
-    localStorage.setItem('admin_token', 'admin-token');
-    localStorage.setItem('admin_user', JSON.stringify(mockUser));
-    setUser(mockUser);
-    return mockUser;
+    throw new Error('Invalid phone number or password');
   };
 
   const logout = () => {
