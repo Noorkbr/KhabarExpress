@@ -67,29 +67,28 @@ exports.createPayment = async (req, res, next) => {
     // Process payment based on method
     switch (method) {
       case 'bkash':
-        paymentResponse = await bkashService.createPayment({
-          amount: order.total,
-          orderId: order._id.toString(),
-          paymentId: payment._id.toString(),
-        });
+        paymentResponse = await bkashService.createPayment(
+          order.total,
+          order._id.toString(),
+          req.user?.phone
+        );
         
         payment.gateway = {
           provider: 'bkash',
-          paymentId: paymentResponse.paymentID,
+          paymentId: paymentResponse.paymentId,
           sessionKey: paymentResponse.sessionKey,
         };
         break;
 
       case 'nagad':
-        paymentResponse = await nagadService.createPayment({
-          amount: order.total,
-          orderId: order._id.toString(),
-          paymentId: payment._id.toString(),
-        });
+        paymentResponse = await nagadService.initiatePayment(
+          order.total,
+          order._id.toString()
+        );
         
         payment.gateway = {
           provider: 'nagad',
-          paymentId: paymentResponse.paymentReferenceId,
+          paymentId: paymentResponse.paymentRef,
           sessionKey: paymentResponse.challenge,
         };
         break;
@@ -127,19 +126,18 @@ exports.createPayment = async (req, res, next) => {
         break;
 
       case 'card':
-        paymentResponse = await sslCommerzService.createPayment({
-          amount: order.total,
+        paymentResponse = await sslCommerzService.initiateSession({
           orderId: order._id.toString(),
-          paymentId: payment._id.toString(),
-          customerName: req.user.name,
-          customerEmail: req.user.email || `user${req.userId}@khabarexpress.com`,
-          customerPhone: req.user.phone,
-          returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
+          amount: order.total,
+          customerName: req.user?.name || 'Customer',
+          customerEmail: req.user?.email || `user${req.userId}@khabarexpress.com`,
+          customerPhone: req.user?.phone || '',
+          productName: 'Food Order',
         });
         
         payment.gateway = {
           provider: 'sslcommerz',
-          transactionId: paymentResponse.sessionkey,
+          transactionId: paymentResponse.sessionKey,
         };
         break;
 
@@ -173,7 +171,7 @@ exports.createPayment = async (req, res, next) => {
       message: 'Payment initiated successfully',
       data: {
         payment,
-        redirectUrl: paymentResponse.bkashURL || paymentResponse.callBackUrl || paymentResponse.GatewayPageURL,
+        redirectUrl: paymentResponse.bkashURL || paymentResponse.callbackUrl || paymentResponse.gatewayPageURL || paymentResponse.redirectUrl,
       },
     });
   } catch (error) {
@@ -200,11 +198,9 @@ exports.bkashCallback = async (req, res, next) => {
 
     if (status === 'success') {
       // Execute payment
-      const executeResponse = await bkashService.executePayment({
-        paymentID,
-      });
+      const executeResponse = await bkashService.executePayment(paymentID);
 
-      if (executeResponse.statusCode === '0000') {
+      if (executeResponse.success) {
         payment.status = 'success';
         payment.gateway.transactionId = executeResponse.trxID;
         payment.gatewayResponse = executeResponse;
@@ -262,13 +258,11 @@ exports.nagadCallback = async (req, res, next) => {
 
     if (status === 'Success') {
       // Verify payment
-      const verifyResponse = await nagadService.verifyPayment({
-        paymentReferenceId: payment_ref_id,
-      });
+      const verifyResponse = await nagadService.verifyPayment(payment_ref_id);
 
-      if (verifyResponse.status === 'Success') {
+      if (verifyResponse.success) {
         payment.status = 'success';
-        payment.gateway.transactionId = verifyResponse.issuerPaymentRefNo;
+        payment.gateway.transactionId = verifyResponse.data?.issuerPaymentRefNo;
         payment.gatewayResponse = verifyResponse;
         applyAdminProfit(payment);
 
@@ -324,14 +318,12 @@ exports.sslCommerzCallback = async (req, res, next) => {
 
     if (status === 'VALID' || status === 'VALIDATED') {
       // Validate payment
-      const validateResponse = await sslCommerzService.validatePayment({
-        validationId: val_id,
-      });
+      const validateResponse = await sslCommerzService.validatePayment(val_id);
 
-      if (validateResponse.status === 'VALID' || validateResponse.status === 'VALIDATED') {
+      if (validateResponse.success) {
         payment.status = 'success';
-        payment.gateway.transactionId = validateResponse.tran_id;
-        payment.gatewayResponse = validateResponse;
+        payment.gateway.transactionId = validateResponse.data?.tran_id;
+        payment.gatewayResponse = validateResponse.data;
         applyAdminProfit(payment);
 
         // Update order
@@ -592,12 +584,11 @@ exports.refundPayment = async (req, res, next) => {
     // Process refund based on payment method
     switch (payment.gateway.provider) {
       case 'bkash':
-        refundResponse = await bkashService.refundPayment({
-          paymentID: payment.gateway.paymentId,
-          amount: refundAmount,
-          trxID: payment.gateway.transactionId,
-          reason,
-        });
+        refundResponse = await bkashService.refund(
+          payment.gateway.paymentId,
+          refundAmount,
+          reason
+        );
         break;
 
       case 'nagad':
@@ -608,11 +599,11 @@ exports.refundPayment = async (req, res, next) => {
         });
 
       case 'sslcommerz':
-        refundResponse = await sslCommerzService.refundPayment({
-          bankTransactionId: payment.gateway.transactionId,
-          refundAmount: refundAmount,
-          reason,
-        });
+        refundResponse = await sslCommerzService.initiateRefund(
+          payment.gateway.transactionId,
+          refundAmount,
+          reason
+        );
         break;
 
       case 'rocket':

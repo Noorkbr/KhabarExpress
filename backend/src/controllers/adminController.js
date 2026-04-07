@@ -51,7 +51,7 @@ exports.getDashboardStats = async (req, res, next) => {
       {
         $group: {
           _id: null,
-          total: { $sum: '$totalAmount' },
+          total: { $sum: '$total' },
         },
       },
     ]);
@@ -63,7 +63,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const totalOrders = await Order.countDocuments();
 
     // Pending approvals
-    const pendingRestaurants = await Restaurant.countDocuments({ isApproved: false });
+    const pendingRestaurants = await Restaurant.countDocuments({ approvalStatus: 'pending' });
     const pendingRiders = await Rider.countDocuments({ isApproved: false });
 
     // Active orders
