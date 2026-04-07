@@ -70,7 +70,11 @@ class NotificationService {
     }
   }
 
-  // Look up a user's FCM token from the database
+  /**
+   * Look up a user's FCM device token from the database.
+   * @param {string} userId - The MongoDB ObjectId of the user.
+   * @returns {Promise<string|null>} The FCM token, or null if not found.
+   */
   async getUserDeviceToken(userId) {
     try {
       const user = await User.findById(userId).select('+fcmToken');

@@ -3,7 +3,14 @@ const fs = require('fs');
 
 const UPLOAD_ROOT = path.resolve(__dirname, '../../uploads');
 
-// Safely resolve a file path within the upload root, preventing traversal
+/**
+ * Safely resolve a file path within the upload root directory.
+ * Prevents directory traversal attacks by validating the resolved path
+ * starts with the upload root and stripping directory components from filename.
+ * @param {string} type - Upload subdirectory (e.g. 'restaurants', 'menu').
+ * @param {string} filename - The filename to resolve.
+ * @returns {string|null} The safe absolute path, or null if traversal detected.
+ */
 const safeFilePath = (type, filename) => {
   const resolved = path.resolve(UPLOAD_ROOT, type || 'general', path.basename(filename));
   if (!resolved.startsWith(UPLOAD_ROOT)) return null;

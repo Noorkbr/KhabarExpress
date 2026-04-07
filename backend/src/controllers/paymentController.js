@@ -672,11 +672,18 @@ exports.getAllPayments = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
-    const { status, method } = req.query;
+
+    // Validate and whitelist query filters to prevent NoSQL injection
+    const VALID_STATUSES = ['pending', 'initiated', 'success', 'failed', 'refunded'];
+    const VALID_METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'];
 
     const query = {};
-    if (status) query.status = status;
-    if (method) query.method = method;
+    if (typeof req.query.status === 'string' && VALID_STATUSES.includes(req.query.status)) {
+      query.status = req.query.status;
+    }
+    if (typeof req.query.method === 'string' && VALID_METHODS.includes(req.query.method)) {
+      query.method = req.query.method;
+    }
 
     const payments = await Payment.find(query)
       .populate('user', 'name phone')

@@ -3,7 +3,13 @@ const jwt = require('jsonwebtoken');
 
 let io;
 
-// Middleware to verify JWT token on socket connections
+/**
+ * Socket.IO authentication middleware.
+ * Verifies JWT token from handshake auth or query parameters.
+ * Attaches decoded user data to socket.user on success.
+ * @param {import('socket.io').Socket} socket - The connecting socket.
+ * @param {Function} next - Express-style next callback.
+ */
 const socketAuthMiddleware = (socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (!token) {
