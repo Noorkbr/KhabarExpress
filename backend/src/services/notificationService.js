@@ -1,8 +1,14 @@
 const admin = require('../config/firebase');
+const User = require('../models/User');
 
 class NotificationService {
   // Send push notification to a single device
   async sendToDevice(deviceToken, notification, data = {}) {
+    if (!deviceToken) {
+      console.warn('⚠️ No device token provided, skipping notification');
+      return { success: false, error: 'No device token' };
+    }
+
     try {
       const message = {
         token: deviceToken,
@@ -35,9 +41,15 @@ class NotificationService {
 
   // Send to multiple devices
   async sendToMultipleDevices(deviceTokens, notification, data = {}) {
+    const validTokens = (deviceTokens || []).filter(Boolean);
+    if (validTokens.length === 0) {
+      console.warn('⚠️ No valid device tokens, skipping notification');
+      return { success: false, error: 'No valid device tokens' };
+    }
+
     try {
       const message = {
-        tokens: deviceTokens,
+        tokens: validTokens,
         notification: {
           title: notification.title,
           body: notification.body,
@@ -58,12 +70,22 @@ class NotificationService {
     }
   }
 
+  // Look up a user's FCM token from the database
+  async getUserDeviceToken(userId) {
+    try {
+      const user = await User.findById(userId).select('+fcmToken');
+      return user?.fcmToken || null;
+    } catch (error) {
+      console.error('Error fetching user device token:', error);
+      return null;
+    }
+  }
+
   // Order notifications
   async sendOrderConfirmation(userId, order) {
-    // TODO: Get user's FCM token from database
-    // const deviceToken = await getUserDeviceToken(userId);
-    
-    return this.sendToDevice('dummy-token', {
+    const deviceToken = await this.getUserDeviceToken(userId);
+
+    return this.sendToDevice(deviceToken, {
       title: 'Order Confirmed! 🎉',
       body: `Your order #${order.orderNumber} has been confirmed. Preparing your food!`,
     }, {
@@ -84,7 +106,9 @@ class NotificationService {
     const message = messages[status];
     if (!message) return;
 
-    return this.sendToDevice('dummy-token', message, {
+    const deviceToken = await this.getUserDeviceToken(userId);
+
+    return this.sendToDevice(deviceToken, message, {
       type: 'order_status',
       orderId: order._id.toString(),
       status,

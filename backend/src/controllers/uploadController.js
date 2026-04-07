@@ -1,6 +1,15 @@
 const path = require('path');
 const fs = require('fs');
 
+const UPLOAD_ROOT = path.resolve(__dirname, '../../uploads');
+
+// Safely resolve a file path within the upload root, preventing traversal
+const safeFilePath = (type, filename) => {
+  const resolved = path.resolve(UPLOAD_ROOT, type || 'general', path.basename(filename));
+  if (!resolved.startsWith(UPLOAD_ROOT)) return null;
+  return resolved;
+};
+
 // Upload single image
 exports.uploadImage = async (req, res, next) => {
   try {
@@ -66,8 +75,11 @@ exports.deleteFile = async (req, res, next) => {
     const { filename } = req.params;
     const { type } = req.query;
 
-    // Construct file path
-    const filePath = path.join(__dirname, '../../uploads', type || 'general', filename);
+    // Safely construct file path (prevents directory traversal)
+    const filePath = safeFilePath(type, filename);
+    if (!filePath) {
+      return res.status(400).json({ success: false, message: 'Invalid file path' });
+    }
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
@@ -95,7 +107,11 @@ exports.getFileInfo = async (req, res, next) => {
     const { filename } = req.params;
     const { type } = req.query;
 
-    const filePath = path.join(__dirname, '../../uploads', type || 'general', filename);
+    // Safely construct file path (prevents directory traversal)
+    const filePath = safeFilePath(type, filename);
+    if (!filePath) {
+      return res.status(400).json({ success: false, message: 'Invalid file path' });
+    }
 
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({

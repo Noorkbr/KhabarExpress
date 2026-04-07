@@ -80,7 +80,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['bkash', 'nagad', 'rocket', 'card', 'cod'],
+    enum: ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'],
     required: true,
   },
   paymentStatus: {
@@ -120,7 +120,7 @@ const orderSchema = new mongoose.Schema({
 orderSchema.pre('save', async function(next) {
   if (!this.orderNumber) {
     const count = await mongoose.model('Order').countDocuments();
-    this.orderNumber = `KL${Date.now().toString().slice(-8)}${String(count + 1).padStart(4, '0')}`;
+    this.orderNumber = `KE${Date.now().toString().slice(-8)}${String(count + 1).padStart(4, '0')}`;
   }
   next();
 });

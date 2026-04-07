@@ -537,14 +537,15 @@ exports.getPaymentByOrderId = async (req, res, next) => {
 // Get payment history for user
 exports.getPaymentHistory = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
 
     const payments = await Payment.find({ user: req.userId })
-      .populate('order', 'orderNumber totalAmount createdAt')
+      .populate('order', 'orderNumber total createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Payment.countDocuments({ user: req.userId });
 
@@ -554,7 +555,7 @@ exports.getPaymentHistory = async (req, res, next) => {
         payments,
         pagination: {
           total,
-          page: parseInt(page),
+          page,
           pages: Math.ceil(total / limit),
         },
       },
@@ -668,8 +669,10 @@ exports.refundPayment = async (req, res, next) => {
 // Admin: Get all payments
 exports.getAllPayments = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, method } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
+    const { status, method } = req.query;
 
     const query = {};
     if (status) query.status = status;
@@ -677,10 +680,10 @@ exports.getAllPayments = async (req, res, next) => {
 
     const payments = await Payment.find(query)
       .populate('user', 'name phone')
-      .populate('order', 'orderNumber totalAmount')
+      .populate('order', 'orderNumber total')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Payment.countDocuments(query);
 
@@ -690,7 +693,7 @@ exports.getAllPayments = async (req, res, next) => {
         payments,
         pagination: {
           total,
-          page: parseInt(page),
+          page,
           pages: Math.ceil(total / limit),
         },
       },

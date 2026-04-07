@@ -73,6 +73,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     select: false, // Don't return password by default
   },
+  fcmToken: {
+    type: String,
+    select: false, // Only accessed by notification service
+  },
   isBanned: {
     type: Boolean,
     default: false,

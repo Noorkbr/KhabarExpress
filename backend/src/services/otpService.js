@@ -1,4 +1,5 @@
 const { cache } = require('../config/redis');
+const { randomInt } = require('crypto');
 
 class OTPService {
   constructor() {
@@ -6,12 +7,11 @@ class OTPService {
     this.otpLength = parseInt(process.env.OTP_LENGTH || '6');
   }
 
-  // Generate OTP
+  // Generate OTP using cryptographically secure random numbers
   generateOTP() {
-    const digits = '0123456789';
     let otp = '';
     for (let i = 0; i < this.otpLength; i++) {
-      otp += digits[Math.floor(Math.random() * 10)];
+      otp += randomInt(10).toString();
     }
     return otp;
   }

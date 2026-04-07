@@ -57,11 +57,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  const mongoose = require('mongoose');
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+  const isHealthy = dbState === 1;
+
+  res.status(isHealthy ? 200 : 503).json({ 
+    status: isHealthy ? 'OK' : 'DEGRADED', 
     message: 'KhabarExpress API is running',
     timestamp: new Date().toISOString(),
-    version: process.env.API_VERSION || 'v1'
+    version: process.env.API_VERSION || 'v1',
+    database: dbStatus,
   });
 });
 
