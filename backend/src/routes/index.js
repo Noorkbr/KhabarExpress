@@ -29,8 +29,8 @@ router.use('/riders', riderRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/promo-codes', promoCodeRoutes);
-router.use('/admin', adminRoutes);
 router.use('/admin/auth', adminAuthRoutes);
+router.use('/admin', adminRoutes);
 router.use('/upload', uploadRoutes);
 
 // API info endpoint

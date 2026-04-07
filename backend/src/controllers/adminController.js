@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Rider = require('../models/Rider');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
+const Setting = require('../models/Setting');
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ const safeDate = (val) => {
 // ── Enum allow-lists ──────────────────────────────────────────
 const ALLOWED_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready', 'picked_up', 'on_the_way', 'delivered', 'cancelled'];
 const ALLOWED_PAYMENT_METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'];
-const ALLOWED_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+const ALLOWED_PAYMENT_STATUSES = ['pending', 'initiated', 'success', 'failed', 'refunded'];
 const ALLOWED_APPROVAL_STATUSES = ['pending', 'approved', 'rejected'];
 const ALLOWED_RIDER_STATUSES = ['available', 'busy', 'offline'];
 const ALLOWED_USER_ROLES = ['customer', 'admin'];
@@ -104,7 +105,7 @@ exports.getDashboardStats = async (req, res, next) => {
 // Get recent activities
 exports.getRecentActivities = async (req, res, next) => {
   try {
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
 
     const recentOrders = await Order.find()
       .populate('userId', 'name phone')
@@ -412,9 +413,9 @@ exports.exportData = async (req, res, next) => {
         data = await Order.find({
           createdAt: { $gte: start, $lte: end },
         })
-          .populate('userId', 'name phone')
-          .populate('restaurantId', 'name')
-          .populate('riderId', 'name')
+          .populate('user', 'name phone')
+          .populate('restaurant', 'name')
+          .populate('rider', 'name')
           .lean();
         break;
 
@@ -454,7 +455,11 @@ exports.exportData = async (req, res, next) => {
           const values = headers.map(h => {
             const val = row[h];
             if (val === null || val === undefined) return '';
-            const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+            let str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+            // Prevent CSV formula injection by prefixing dangerous characters
+            if (/^[=+\-@\t\r]/.test(str)) {
+              str = `'${str}`;
+            }
             // Escape CSV special characters
             return `"${str.replace(/"/g, '""')}"`;
           });
@@ -680,7 +685,7 @@ exports.getVerificationStats = async (req, res, next) => {
 exports.listUsers = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const search = safeStr(req.query.search);
     const role = ALLOWED_USER_ROLES.includes(safeStr(req.query.role)) ? safeStr(req.query.role) : null;
 
@@ -749,7 +754,7 @@ exports.updateUser = async (req, res, next) => {
 exports.listOrders = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const statusRaw = safeStr(req.query.status);
     const paymentMethodRaw = safeStr(req.query.paymentMethod);
     const search = safeStr(req.query.search);
@@ -836,7 +841,7 @@ exports.updateOrderStatus = async (req, res, next) => {
 exports.listRestaurants = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const approvalStatusRaw = safeStr(req.query.approvalStatus);
     const search = safeStr(req.query.search);
 
@@ -896,7 +901,7 @@ exports.updateRestaurantStatus = async (req, res, next) => {
 exports.listRiders = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const statusRaw = safeStr(req.query.status);
     const search = safeStr(req.query.search);
 
@@ -936,7 +941,7 @@ exports.listRiders = async (req, res, next) => {
 exports.listPayments = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const methodRaw = safeStr(req.query.method);
     const statusRaw = safeStr(req.query.status);
 
@@ -974,28 +979,40 @@ exports.listPayments = async (req, res, next) => {
 };
 
 // ──────────────────────────────────────────────────────────────
-// Settings Management
+// Settings Management (persisted to MongoDB)
 // ──────────────────────────────────────────────────────────────
 
-// In-memory settings store (replace with DB model in production)
-let platformSettings = {
-  appName: 'KhabarExpress',
-  deliveryFee: parseInt(process.env.BASE_DELIVERY_FEE) || 20,
-  adminProfitRate: parseFloat(process.env.ADMIN_PROFIT_RATE) || 5,
-  minOrderAmount: parseInt(process.env.MIN_ORDER_AMOUNT) || 50,
-  maintenanceMode: process.env.MAINTENANCE_MODE === 'true',
-  paymentMethods: {
-    bkash: true,
-    rocket: true,
-    upay: true,
-    sslcommerz: true,
-    cod: true,
+// Allowed settings fields with type coercion
+const SETTINGS_SCHEMA = {
+  appName: (v) => (typeof v === 'string' ? v.slice(0, 100) : undefined),
+  deliveryFee: (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : undefined; },
+  adminProfitRate: (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= 100 ? n : undefined; },
+  minOrderAmount: (v) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : undefined; },
+  maintenanceMode: (v) => (typeof v === 'boolean' ? v : undefined),
+  paymentMethods: (v) => {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) return undefined;
+    const allowed = ['bkash', 'rocket', 'upay', 'sslcommerz', 'cod'];
+    const result = {};
+    for (const key of allowed) {
+      if (typeof v[key] === 'boolean') result[key] = v[key];
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
   },
 };
 
 exports.getSettings = async (req, res, next) => {
   try {
-    res.json({ success: true, data: platformSettings });
+    let settings = await Setting.findOne({ key: 'platform' });
+    if (!settings) {
+      settings = await Setting.create({
+        key: 'platform',
+        deliveryFee: parseInt(process.env.BASE_DELIVERY_FEE) || 20,
+        adminProfitRate: parseFloat(process.env.ADMIN_PROFIT_RATE) || 5,
+        minOrderAmount: parseInt(process.env.MIN_ORDER_AMOUNT) || 50,
+        maintenanceMode: process.env.MAINTENANCE_MODE === 'true',
+      });
+    }
+    res.json({ success: true, data: settings });
   } catch (error) {
     next(error);
   }
@@ -1003,8 +1020,31 @@ exports.getSettings = async (req, res, next) => {
 
 exports.updateSettings = async (req, res, next) => {
   try {
-    platformSettings = { ...platformSettings, ...req.body };
-    res.json({ success: true, data: platformSettings });
+    // Whitelist and coerce incoming fields
+    const update = {};
+    for (const [field, coerce] of Object.entries(SETTINGS_SCHEMA)) {
+      if (req.body[field] !== undefined) {
+        const val = coerce(req.body[field]);
+        if (val !== undefined) {
+          if (field === 'paymentMethods') {
+            // Merge payment methods instead of replacing
+            for (const [k, v] of Object.entries(val)) {
+              update[`paymentMethods.${k}`] = v;
+            }
+          } else {
+            update[field] = val;
+          }
+        }
+      }
+    }
+
+    const settings = await Setting.findOneAndUpdate(
+      { key: 'platform' },
+      { $set: update },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    res.json({ success: true, data: settings });
   } catch (error) {
     next(error);
   }

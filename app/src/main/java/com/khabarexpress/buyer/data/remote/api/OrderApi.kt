@@ -5,19 +5,19 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface OrderApi {
-    @POST("orders")
+    @POST("api/v1/orders")
     suspend fun placeOrder(
         @Header("Authorization") token: String,
         @Body request: PlaceOrderRequest
     ): Response<OrderDto>
     
-    @GET("orders/{id}")
+    @GET("api/v1/orders/{id}")
     suspend fun getOrderById(
         @Header("Authorization") token: String,
         @Path("id") orderId: String
     ): Response<OrderDto>
     
-    @GET("orders")
+    @GET("api/v1/orders")
     suspend fun getOrders(
         @Header("Authorization") token: String,
         @Query("page") page: Int = 1,
@@ -25,20 +25,20 @@ interface OrderApi {
         @Query("status") status: String? = null
     ): Response<OrderListResponse>
     
-    @GET("orders/{id}/tracking")
+    @GET("api/v1/orders/{id}/tracking")
     suspend fun getOrderTracking(
         @Header("Authorization") token: String,
         @Path("id") orderId: String
     ): Response<OrderTrackingDto>
     
-    @PUT("orders/{id}/cancel")
+    @PUT("api/v1/orders/{id}/cancel")
     suspend fun cancelOrder(
         @Header("Authorization") token: String,
         @Path("id") orderId: String,
         @Body request: CancelOrderRequest
     ): Response<OrderDto>
     
-    @POST("orders/{id}/rate")
+    @POST("api/v1/orders/{id}/rate")
     suspend fun rateOrder(
         @Header("Authorization") token: String,
         @Path("id") orderId: String,

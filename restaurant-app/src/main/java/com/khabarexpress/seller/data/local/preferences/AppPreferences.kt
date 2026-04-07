@@ -20,6 +20,7 @@ class AppPreferences(private val context: Context) {
         private val USER_ID = stringPreferencesKey("user_id")
         private val RESTAURANT_ID = stringPreferencesKey("restaurant_id")
         private val RESTAURANT_NAME = stringPreferencesKey("restaurant_name")
+        private val RESTAURANT_PHONE = stringPreferencesKey("restaurant_phone")
     }
 
     suspend fun saveAuthToken(token: String) {
@@ -70,6 +71,14 @@ class AppPreferences(private val context: Context) {
         return context.dataStore.data.first()[RESTAURANT_NAME]
     }
 
+    suspend fun saveRestaurantPhone(phone: String) {
+        context.dataStore.edit { it[RESTAURANT_PHONE] = phone }
+    }
+
+    suspend fun getRestaurantPhone(): String? {
+        return context.dataStore.data.first()[RESTAURANT_PHONE]
+    }
+
     suspend fun clearAuthData() {
         context.dataStore.edit { preferences ->
             preferences.remove(AUTH_TOKEN)
@@ -77,6 +86,7 @@ class AppPreferences(private val context: Context) {
             preferences.remove(USER_ID)
             preferences.remove(RESTAURANT_ID)
             preferences.remove(RESTAURANT_NAME)
+            preferences.remove(RESTAURANT_PHONE)
         }
     }
 

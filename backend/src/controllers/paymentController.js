@@ -33,7 +33,7 @@ exports.createPayment = async (req, res, next) => {
     }
 
     // Check if order belongs to user
-    if (order.userId.toString() !== req.user.userId) {
+    if (order.user.toString() !== req.userId.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized',
@@ -56,8 +56,8 @@ exports.createPayment = async (req, res, next) => {
     // Create payment record
     const payment = await Payment.create({
       order: orderId,
-      user: req.user.userId,
-      amount: order.totalAmount,
+      user: req.userId,
+      amount: order.total,
       method,
       status: 'initiated',
     });
@@ -68,7 +68,7 @@ exports.createPayment = async (req, res, next) => {
     switch (method) {
       case 'bkash':
         paymentResponse = await bkashService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
         });
@@ -82,7 +82,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'nagad':
         paymentResponse = await nagadService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
         });
@@ -96,7 +96,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'rocket':
         paymentResponse = await rocketService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerPhone: req.user.phone,
@@ -112,7 +112,7 @@ exports.createPayment = async (req, res, next) => {
 
       case 'upay':
         paymentResponse = await upayService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerPhone: req.user.phone,
@@ -128,11 +128,11 @@ exports.createPayment = async (req, res, next) => {
 
       case 'card':
         paymentResponse = await sslCommerzService.createPayment({
-          amount: order.totalAmount,
+          amount: order.total,
           orderId: order._id.toString(),
           paymentId: payment._id.toString(),
           customerName: req.user.name,
-          customerEmail: req.user.email || `user${req.user.userId}@khabarexpress.com`,
+          customerEmail: req.user.email || `user${req.userId}@khabarexpress.com`,
           customerPhone: req.user.phone,
           returnUrl: returnUrl || `${process.env.FRONTEND_URL}/payment/callback`,
         });
@@ -218,7 +218,7 @@ exports.bkashCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -280,7 +280,7 @@ exports.nagadCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -342,7 +342,7 @@ exports.sslCommerzCallback = async (req, res, next) => {
 
         // Emit order update
         const io = getIO();
-        io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+        io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
           orderId: order._id,
           status: 'confirmed',
           paymentStatus: 'paid',
@@ -411,7 +411,7 @@ exports.rocketCallback = async (req, res, next) => {
 
           // Emit order update
           const io = getIO();
-          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+          io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
             orderId: order._id,
             status: 'confirmed',
             paymentStatus: 'paid',
@@ -481,7 +481,7 @@ exports.upayCallback = async (req, res, next) => {
 
           // Emit order update
           const io = getIO();
-          io.to(`order_${order._id}`).emit('orderStatusUpdate', {
+          io.of('/order').to(`order:${order._id}`).emit('orderStatusUpdate', {
             orderId: order._id,
             status: 'confirmed',
             paymentStatus: 'paid',
@@ -537,16 +537,17 @@ exports.getPaymentByOrderId = async (req, res, next) => {
 // Get payment history for user
 exports.getPaymentHistory = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
 
-    const payments = await Payment.find({ user: req.user.userId })
-      .populate('order', 'orderNumber totalAmount createdAt')
+    const payments = await Payment.find({ user: req.userId })
+      .populate('order', 'orderNumber total createdAt')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
-    const total = await Payment.countDocuments({ user: req.user.userId });
+    const total = await Payment.countDocuments({ user: req.userId });
 
     res.json({
       success: true,
@@ -554,7 +555,7 @@ exports.getPaymentHistory = async (req, res, next) => {
         payments,
         pagination: {
           total,
-          page: parseInt(page),
+          page,
           pages: Math.ceil(total / limit),
         },
       },
@@ -668,19 +669,28 @@ exports.refundPayment = async (req, res, next) => {
 // Admin: Get all payments
 exports.getAllPayments = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, method } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const skip = (page - 1) * limit;
 
+    // Validate and whitelist query filters to prevent NoSQL injection
+    const VALID_STATUSES = ['pending', 'initiated', 'success', 'failed', 'refunded'];
+    const VALID_METHODS = ['bkash', 'nagad', 'rocket', 'upay', 'card', 'cod'];
+
     const query = {};
-    if (status) query.status = status;
-    if (method) query.method = method;
+    if (typeof req.query.status === 'string' && VALID_STATUSES.includes(req.query.status)) {
+      query.status = req.query.status;
+    }
+    if (typeof req.query.method === 'string' && VALID_METHODS.includes(req.query.method)) {
+      query.method = req.query.method;
+    }
 
     const payments = await Payment.find(query)
       .populate('user', 'name phone')
-      .populate('order', 'orderNumber totalAmount')
+      .populate('order', 'orderNumber total')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limit);
 
     const total = await Payment.countDocuments(query);
 
@@ -690,7 +700,7 @@ exports.getAllPayments = async (req, res, next) => {
         payments,
         pagination: {
           total,
-          page: parseInt(page),
+          page,
           pages: Math.ceil(total / limit),
         },
       },

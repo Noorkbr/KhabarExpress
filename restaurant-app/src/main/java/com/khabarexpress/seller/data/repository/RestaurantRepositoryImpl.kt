@@ -19,12 +19,11 @@ class RestaurantRepositoryImpl @Inject constructor(
 
     override suspend fun getProfile(): Result<RestaurantInfo> {
         return try {
-            val response = restaurantApi.getAnalytics(getToken(), "today")
-            // Profile data comes from analytics endpoint or we use stored data
+            // Profile data comes from stored preferences set during login
             Result.success(RestaurantInfo(
                 id = appPreferences.getRestaurantId() ?: "",
                 name = appPreferences.getRestaurantName() ?: "",
-                phone = ""
+                phone = appPreferences.getRestaurantPhone() ?: ""
             ))
         } catch (e: Exception) {
             Result.failure(Exception("Failed to load profile: ${e.message}", e))

@@ -6,6 +6,7 @@ import {
 import api from '../services/api';
 import { PageSpinner } from '../components/shared/Spinner';
 import StatusBadge from '../components/shared/StatusBadge';
+import toast from 'react-hot-toast';
 
 const KPI_COLORS = ['#D4A843', '#1B2838', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
 
@@ -39,7 +40,10 @@ export default function DashboardPage() {
         setActivities(a.data.data?.orders || []);
         setProfit(p.data.data);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('Dashboard load error:', err);
+        toast.error('Failed to load dashboard data');
+      })
       .finally(() => setLoading(false));
   }, []);
 

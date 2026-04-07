@@ -22,6 +22,14 @@ exports.createOrder = async (req, res, next) => {
     const orderItems = [];
 
     for (const item of items) {
+      // Validate quantity
+      if (!item.quantity || !Number.isInteger(item.quantity) || item.quantity < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each item must have a positive integer quantity',
+        });
+      }
+
       const menuItem = await MenuItem.findById(item.menuItemId);
       if (!menuItem || !menuItem.isAvailable) {
         return res.status(400).json({

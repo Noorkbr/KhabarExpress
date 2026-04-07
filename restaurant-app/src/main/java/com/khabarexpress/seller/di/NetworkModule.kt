@@ -1,5 +1,6 @@
 package com.khabarexpress.seller.di
 
+import com.khabarexpress.seller.BuildConfig
 import com.khabarexpress.seller.data.remote.api.AuthApi
 import com.khabarexpress.seller.data.remote.api.MenuApi
 import com.khabarexpress.seller.data.remote.api.OrderApi
@@ -27,7 +28,11 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BODY
+                    level = if (BuildConfig.DEBUG) {
+                        HttpLoggingInterceptor.Level.BODY
+                    } else {
+                        HttpLoggingInterceptor.Level.NONE
+                    }
                 }
             )
             .connectTimeout(30, TimeUnit.SECONDS)

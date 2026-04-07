@@ -225,47 +225,47 @@ describe('Payment Endpoints', () => {
   });
 
   describe('Payment Callback Endpoints', () => {
-    it('POST /api/v1/payments/bkash/callback should accept requests', async () => {
+    it('POST /api/v1/payments/bkash/callback should accept requests without auth', async () => {
       // Callback endpoints are public (called by payment gateways)
-      // They should not return 404
+      // They should not return 401 (no auth required)
       const res = await request(app)
         .post('/api/v1/payments/bkash/callback')
         .send({ paymentID: 'test123', status: 'success' });
 
-      // Should not be 404 (endpoint exists)
-      expect(res.statusCode).not.toBe(404);
+      // Should not require authentication (not 401)
+      expect(res.statusCode).not.toBe(401);
     });
 
-    it('POST /api/v1/payments/nagad/callback should accept requests', async () => {
+    it('POST /api/v1/payments/nagad/callback should accept requests without auth', async () => {
       const res = await request(app)
         .post('/api/v1/payments/nagad/callback')
         .send({ paymentRefId: 'test456' });
 
-      expect(res.statusCode).not.toBe(404);
+      expect(res.statusCode).not.toBe(401);
     });
 
-    it('POST /api/v1/payments/sslcommerz/callback should accept requests', async () => {
+    it('POST /api/v1/payments/sslcommerz/callback should accept requests without auth', async () => {
       const res = await request(app)
         .post('/api/v1/payments/sslcommerz/callback')
         .send({ tran_id: 'test789', status: 'VALID' });
 
-      expect(res.statusCode).not.toBe(404);
+      expect(res.statusCode).not.toBe(401);
     });
 
-    it('POST /api/v1/payments/rocket/callback should accept requests', async () => {
+    it('POST /api/v1/payments/rocket/callback should accept requests without auth', async () => {
       const res = await request(app)
         .post('/api/v1/payments/rocket/callback')
         .send({ payment_id: 'rocket123', transaction_id: 'txn456', status: 'completed' });
 
-      expect(res.statusCode).not.toBe(404);
+      expect(res.statusCode).not.toBe(401);
     });
 
-    it('POST /api/v1/payments/upay/callback should accept requests', async () => {
+    it('POST /api/v1/payments/upay/callback should accept requests without auth', async () => {
       const res = await request(app)
         .post('/api/v1/payments/upay/callback')
         .send({ payment_id: 'upay123', transaction_id: 'txn789', status: 'success' });
 
-      expect(res.statusCode).not.toBe(404);
+      expect(res.statusCode).not.toBe(401);
     });
   });
 

@@ -102,7 +102,7 @@ exports.validatePromoCode = async (req, res, next) => {
 
     // Check per-user usage limit
     const userUsageCount = await Order.countDocuments({
-      userId: req.user.userId,
+      user: req.userId,
       promoCode: promoCode._id,
     });
 
@@ -116,7 +116,7 @@ exports.validatePromoCode = async (req, res, next) => {
     // Check if applicable to first order only
     if (promoCode.applicableTo === 'first_order') {
       const userOrderCount = await Order.countDocuments({
-        userId: req.user.userId,
+        user: req.userId,
         status: { $ne: 'cancelled' },
       });
 

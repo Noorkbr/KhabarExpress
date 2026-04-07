@@ -91,8 +91,12 @@ class CartRepositoryImpl @Inject constructor(
             // If cart has items and restaurant is different, return error
             if (existingItems.isNotEmpty()) {
                 val existingRestaurantId = existingItems.first().restaurantId
-                // We need to get restaurant ID from somewhere - for now assume it's passed
-                // In real implementation, you'd pass restaurantId to addItem
+                if (item.restaurantId.isNotEmpty() && existingRestaurantId.isNotEmpty() 
+                    && existingRestaurantId != item.restaurantId) {
+                    return Result.failure(Exception(
+                        "Your cart contains items from another restaurant. Clear your cart to add items from this restaurant."
+                    ))
+                }
             }
             
             // Serialize customizations
@@ -104,8 +108,8 @@ class CartRepositoryImpl @Inject constructor(
             
             val entity = CartItemEntity(
                 id = 0, // Auto-generate
-                restaurantId = "", // This should be passed from UI
-                restaurantName = "",
+                restaurantId = item.restaurantId,
+                restaurantName = item.restaurantName,
                 menuItemId = item.menuItem.id,
                 name = item.menuItem.name,
                 description = item.menuItem.description,

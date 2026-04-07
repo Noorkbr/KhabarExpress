@@ -5,7 +5,9 @@ data class CartItem(
     val menuItem: MenuItem,
     val quantity: Int,
     val selectedCustomizations: List<SelectedCustomization> = emptyList(),
-    val specialInstructions: String? = null
+    val specialInstructions: String? = null,
+    val restaurantId: String = "",
+    val restaurantName: String = ""
 ) {
     val totalPrice: Double
         get() {

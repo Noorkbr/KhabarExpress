@@ -6,6 +6,13 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validator');
 const { paymentLimiter } = require('../middleware/rateLimiter');
 
+// Callback routes (public - called by payment gateways, must be before auth)
+router.post('/bkash/callback', paymentController.bkashCallback);
+router.post('/nagad/callback', paymentController.nagadCallback);
+router.post('/sslcommerz/callback', paymentController.sslCommerzCallback);
+router.post('/rocket/callback', paymentController.rocketCallback);
+router.post('/upay/callback', paymentController.upayCallback);
+
 // User routes (requires authentication)
 router.use(protect);
 
@@ -22,13 +29,6 @@ router.post(
 
 router.get('/order/:orderId', paymentController.getPaymentByOrderId);
 router.get('/history', paymentController.getPaymentHistory);
-
-// Callback routes (public - called by payment gateways)
-router.post('/bkash/callback', paymentController.bkashCallback);
-router.post('/nagad/callback', paymentController.nagadCallback);
-router.post('/sslcommerz/callback', paymentController.sslCommerzCallback);
-router.post('/rocket/callback', paymentController.rocketCallback);
-router.post('/upay/callback', paymentController.upayCallback);
 
 // Admin routes
 router.get('/', authorize('admin'), paymentController.getAllPayments);

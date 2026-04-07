@@ -2,12 +2,14 @@ const request = require('supertest');
 const app = require('../src/app');
 
 describe('Health Check', () => {
-  it('GET /health should return status OK', async () => {
+  it('GET /health should return health status with database info', async () => {
     const res = await request(app).get('/health');
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe('OK');
+    // In test environment DB may not be connected, so accept 200 or 503
+    expect([200, 503]).toContain(res.statusCode);
+    expect(['OK', 'DEGRADED']).toContain(res.body.status);
     expect(res.body.message).toBe('KhabarExpress API is running');
     expect(res.body).toHaveProperty('timestamp');
+    expect(res.body).toHaveProperty('database');
   });
 
   it('GET /api/v1 should return API info', async () => {

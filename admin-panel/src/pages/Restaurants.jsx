@@ -46,12 +46,17 @@ export default function RestaurantsPage() {
   };
 
   const handleAction = async () => {
+    // Require reason for reject/suspend
+    if ((actionType === 'reject' || actionType === 'suspend') && !reason.trim()) {
+      toast.error('Please provide a reason for this action');
+      return;
+    }
     setSaving(true);
     try {
       const update = {};
       if (actionType === 'approve') { update.approvalStatus = 'approved'; update.isActive = true; }
-      if (actionType === 'reject') { update.approvalStatus = 'rejected'; update.rejectionReason = reason; }
-      if (actionType === 'suspend') { update.isActive = false; update.rejectionReason = reason; }
+      if (actionType === 'reject') { update.approvalStatus = 'rejected'; update.rejectionReason = reason.trim(); }
+      if (actionType === 'suspend') { update.isActive = false; update.rejectionReason = reason.trim(); }
       if (actionType === 'unsuspend') { update.isActive = true; update.approvalStatus = 'approved'; }
 
       await api.patch(`/admin/restaurants/${actionModal._id}/status`, update);

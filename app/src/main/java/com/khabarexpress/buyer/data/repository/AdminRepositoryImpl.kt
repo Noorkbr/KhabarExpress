@@ -19,8 +19,8 @@ class AdminRepositoryImpl @Inject constructor(
     override suspend fun getDashboardStats(): Result<AdminDashboardData> {
         return try {
             val response = adminApi.getDashboardStats(getAuthHeader())
-            if (response.success) {
-                Result.success(response.data)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.data)
             } else {
                 Result.failure(Exception("Failed to fetch dashboard stats"))
             }
@@ -38,8 +38,8 @@ class AdminRepositoryImpl @Inject constructor(
             val response = adminApi.getProfitAnalytics(
                 getAuthHeader(), startDate, endDate, groupBy
             )
-            if (response.success) {
-                Result.success(response.data)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.data)
             } else {
                 Result.failure(Exception("Failed to fetch profit analytics"))
             }
@@ -51,8 +51,8 @@ class AdminRepositoryImpl @Inject constructor(
     override suspend fun getVerificationStats(): Result<VerificationStatsData> {
         return try {
             val response = adminApi.getVerificationStats(getAuthHeader())
-            if (response.success) {
-                Result.success(response.data)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.data)
             } else {
                 Result.failure(Exception("Failed to fetch verification stats"))
             }
@@ -64,8 +64,8 @@ class AdminRepositoryImpl @Inject constructor(
     override suspend fun getPendingRestaurants(): Result<List<PendingRestaurantDto>> {
         return try {
             val response = adminApi.getPendingRestaurants(getAuthHeader())
-            if (response.success) {
-                Result.success(response.data)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.data)
             } else {
                 Result.failure(Exception("Failed to fetch pending restaurants"))
             }
@@ -77,10 +77,10 @@ class AdminRepositoryImpl @Inject constructor(
     override suspend fun approveRestaurant(restaurantId: String): Result<String> {
         return try {
             val response = adminApi.approveRestaurant(getAuthHeader(), restaurantId)
-            if (response.success) {
-                Result.success(response.message)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.message)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.body()?.message ?: "Approval failed"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -92,10 +92,10 @@ class AdminRepositoryImpl @Inject constructor(
             val response = adminApi.rejectRestaurant(
                 getAuthHeader(), restaurantId, RejectRequest(reason)
             )
-            if (response.success) {
-                Result.success(response.message)
+            if (response.isSuccessful && response.body()?.success == true) {
+                Result.success(response.body()!!.message)
             } else {
-                Result.failure(Exception(response.message))
+                Result.failure(Exception(response.body()?.message ?: "Rejection failed"))
             }
         } catch (e: Exception) {
             Result.failure(e)

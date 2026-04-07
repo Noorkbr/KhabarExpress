@@ -5,31 +5,31 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface AuthApi {
-    @POST("auth/phone-login")
+    @POST("api/v1/auth/phone-login")
     suspend fun phoneLogin(@Body request: PhoneRequest): Response<AuthResponse>
 
-    @POST("auth/send-otp")
+    @POST("api/v1/auth/send-otp")
     suspend fun sendOtp(@Body request: PhoneRequest): Response<OtpResponse>
     
-    @POST("auth/verify-otp")
+    @POST("api/v1/auth/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<AuthResponse>
     
-    @POST("auth/login")
+    @POST("api/v1/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
     
-    @POST("auth/register")
+    @POST("api/v1/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
     
-    @POST("auth/refresh-token")
+    @POST("api/v1/auth/refresh-token")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<AuthResponse>
     
-    @POST("auth/logout")
+    @POST("api/v1/auth/logout")
     suspend fun logout(@Header("Authorization") token: String): Response<Unit>
     
-    @GET("auth/profile")
+    @GET("api/v1/auth/profile")
     suspend fun getProfile(@Header("Authorization") token: String): Response<UserDto>
     
-    @PUT("auth/profile")
+    @PUT("api/v1/auth/profile")
     suspend fun updateProfile(
         @Header("Authorization") token: String,
         @Body request: UpdateProfileRequest
