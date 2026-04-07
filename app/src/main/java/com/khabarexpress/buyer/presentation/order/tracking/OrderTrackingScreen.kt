@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.khabarexpress.buyer.domain.model.OrderStatus
@@ -40,31 +41,15 @@ import java.util.*
 fun OrderTrackingScreen(
     orderId: String,
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: OrderTrackingViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
     
-    // Sample data - in production this would come from ViewModel with SocketManager integration
-    val orderStatus = OrderStatus.ON_THE_WAY
-    val timeline = getSampleTimeline()
-    val riderName = "John Smith"
-    val riderPhone = "+1 (555) 987-6543"
-    val estimatedArrival = "15 min"
-    
-    // Sample coordinates for Dhaka, Bangladesh (typical delivery scenario)
-    // In production, these would come from SocketManager.riderLocationUpdates flow
-    var riderLatitude by remember { mutableDoubleStateOf(23.7937) }
-    var riderLongitude by remember { mutableDoubleStateOf(90.4066) }
-    val destinationLatitude = 23.7806
-    val destinationLongitude = 90.4195
-    val restaurantLatitude = 23.8103
-    val restaurantLongitude = 90.4125
-    
-    // Simulate rider movement for demo (replace with SocketManager.riderLocationUpdates in production)
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(3000)
-        riderLatitude = 23.7880
-        riderLongitude = 90.4100
+    // Load order details on first composition
+    LaunchedEffect(orderId) {
+        viewModel.loadOrderDetails(orderId)
     }
     
     Scaffold(
@@ -79,6 +64,49 @@ fun OrderTrackingScreen(
             )
         }
     ) { paddingValues ->
+        when (val state = uiState) {
+            is OrderTrackingUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+            is OrderTrackingUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(state.message, style = MaterialTheme.typography.bodyLarge)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.retry(orderId) }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+            is OrderTrackingUiState.Success -> {
+                val order = state.order
+                val tracking = state.tracking
+                val orderStatus = order.status
+                val riderName = order.rider?.name ?: "Rider"
+                val riderPhone = order.rider?.phone ?: ""
+                val estimatedArrival = tracking?.estimatedArrival?.let {
+                    val mins = ((it - System.currentTimeMillis()) / 60000).coerceAtLeast(1)
+                    "$mins min"
+                } ?: "Calculating..."
+                
+                // Rider location from tracking
+                val riderLatitude = tracking?.riderLocation?.latitude ?: order.rider?.currentLatitude ?: 0.0
+                val riderLongitude = tracking?.riderLocation?.longitude ?: order.rider?.currentLongitude ?: 0.0
+                val destinationLatitude = order.deliveryAddress.latitude
+                val destinationLongitude = order.deliveryAddress.longitude
+                
+                // Build timeline from tracking data, or derive from current status
+                val timeline = tracking?.timeline ?: buildTimelineFromStatus(orderStatus)
+        
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
@@ -110,8 +138,8 @@ fun OrderTrackingScreen(
                             riderLongitude = riderLongitude,
                             destinationLatitude = destinationLatitude,
                             destinationLongitude = destinationLongitude,
-                            restaurantLatitude = restaurantLatitude,
-                            restaurantLongitude = restaurantLongitude,
+                            restaurantLatitude = 0.0,
+                            restaurantLongitude = 0.0,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -147,7 +175,7 @@ fun OrderTrackingScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = orderStatus.name.replace("_", " "),
+                            text = viewModel.getStatusText(orderStatus),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -172,7 +200,7 @@ fun OrderTrackingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             AsyncImage(
-                                model = "https://via.placeholder.com/60",
+                                model = order.rider?.profileImageUrl,
                                 contentDescription = "Rider Photo",
                                 modifier = Modifier
                                     .size(60.dp)
@@ -192,20 +220,21 @@ fun OrderTrackingScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            IconButton(
-                                onClick = {
-                                    // Launch phone dialer with rider phone number
-                                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                                        data = Uri.parse("tel:$riderPhone")
+                            if (riderPhone.isNotBlank()) {
+                                IconButton(
+                                    onClick = {
+                                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                                            data = Uri.parse("tel:$riderPhone")
+                                        }
+                                        context.startActivity(intent)
                                     }
-                                    context.startActivity(intent)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Phone,
+                                        contentDescription = "Call",
+                                        tint = Primary
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    Icons.Filled.Phone,
-                                    contentDescription = "Call",
-                                    tint = Primary
-                                )
                             }
                         }
                     }
@@ -230,6 +259,8 @@ fun OrderTrackingScreen(
             
             items(timeline.size) { index ->
                 TimelineItem(event = timeline[index], isLast = index == timeline.lastIndex)
+            }
+        }
             }
         }
     }
@@ -279,30 +310,30 @@ fun TimelineItem(event: OrderTimelineEvent, isLast: Boolean = false) {
     }
 }
 
-fun getSampleTimeline() = listOf(
-    OrderTimelineEvent(
-        status = OrderStatus.ON_THE_WAY,
-        timestamp = System.currentTimeMillis(),
-        message = "Your order is on the way"
-    ),
-    OrderTimelineEvent(
-        status = OrderStatus.PICKED_UP,
-        timestamp = System.currentTimeMillis() - 10 * 60 * 1000,
-        message = "Order picked up by delivery partner"
-    ),
-    OrderTimelineEvent(
-        status = OrderStatus.PREPARING,
-        timestamp = System.currentTimeMillis() - 20 * 60 * 1000,
-        message = "Restaurant is preparing your order"
-    ),
-    OrderTimelineEvent(
-        status = OrderStatus.CONFIRMED,
-        timestamp = System.currentTimeMillis() - 25 * 60 * 1000,
-        message = "Order confirmed by restaurant"
-    ),
-    OrderTimelineEvent(
-        status = OrderStatus.PENDING,
-        timestamp = System.currentTimeMillis() - 30 * 60 * 1000,
-        message = "Order placed successfully"
+/**
+ * Build timeline events from the current order status.
+ * This is used as a fallback when tracking data is not yet available.
+ */
+fun buildTimelineFromStatus(status: OrderStatus): List<OrderTimelineEvent> {
+    val now = System.currentTimeMillis()
+    val statuses = listOf(
+        OrderStatus.PENDING to "Order placed successfully",
+        OrderStatus.CONFIRMED to "Order confirmed by restaurant",
+        OrderStatus.PREPARING to "Restaurant is preparing your order",
+        OrderStatus.READY_FOR_PICKUP to "Order is ready for pickup",
+        OrderStatus.PICKED_UP to "Order picked up by delivery partner",
+        OrderStatus.ON_THE_WAY to "Your order is on the way",
+        OrderStatus.DELIVERED to "Order delivered"
     )
-)
+    
+    val currentIndex = statuses.indexOfFirst { it.first == status }
+    if (currentIndex < 0) return emptyList()
+    
+    return statuses.take(currentIndex + 1).mapIndexed { index, (s, message) ->
+        OrderTimelineEvent(
+            status = s,
+            timestamp = now - ((currentIndex - index) * 5 * 60 * 1000L),
+            message = message
+        )
+    }.reversed()
+}
