@@ -43,6 +43,16 @@ export default function PromoCodesPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    // Validate discount value
+    const dv = parseFloat(form.discountValue);
+    if (!dv || dv <= 0) {
+      toast.error('Discount value must be greater than 0');
+      return;
+    }
+    if (form.discountType === 'percentage' && dv > 100) {
+      toast.error('Percentage discount cannot exceed 100%');
+      return;
+    }
     setSaving(true);
     try {
       await api.post('/promo-codes', form);
@@ -133,7 +143,7 @@ export default function PromoCodesPage() {
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Discount Value *</label>
-              <input type="number" min="0" value={form.discountValue} onChange={(e) => setForm({ ...form, discountValue: e.target.value })} className="input" required />
+              <input type="number" min="1" max={form.discountType === 'percentage' ? '100' : undefined} value={form.discountValue} onChange={(e) => setForm({ ...form, discountValue: e.target.value })} className="input" required />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">

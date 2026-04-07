@@ -1,43 +1,44 @@
 package com.khabarexpress.buyer.data.remote.api
 
 import com.khabarexpress.buyer.data.remote.dto.*
+import retrofit2.Response
 import retrofit2.http.*
 
 interface AdminApi {
     
-    @GET("admin/dashboard")
+    @GET("api/v1/admin/dashboard")
     suspend fun getDashboardStats(
         @Header("Authorization") token: String
-    ): AdminDashboardResponse
+    ): Response<AdminDashboardResponse>
     
-    @GET("admin/profit")
+    @GET("api/v1/admin/profit")
     suspend fun getProfitAnalytics(
         @Header("Authorization") token: String,
         @Query("startDate") startDate: String? = null,
         @Query("endDate") endDate: String? = null,
         @Query("groupBy") groupBy: String = "daily"
-    ): ProfitAnalyticsResponse
+    ): Response<ProfitAnalyticsResponse>
     
-    @GET("admin/verification-stats")
+    @GET("api/v1/admin/verification-stats")
     suspend fun getVerificationStats(
         @Header("Authorization") token: String
-    ): VerificationStatsResponse
+    ): Response<VerificationStatsResponse>
     
-    @GET("restaurants/admin/pending")
+    @GET("api/v1/restaurants/admin/pending")
     suspend fun getPendingRestaurants(
         @Header("Authorization") token: String
-    ): PendingRestaurantListResponse
+    ): Response<PendingRestaurantListResponse>
     
-    @PATCH("restaurants/admin/{id}/approve")
+    @PATCH("api/v1/restaurants/admin/{id}/approve")
     suspend fun approveRestaurant(
         @Header("Authorization") token: String,
         @Path("id") restaurantId: String
-    ): ApproveRejectResponse
+    ): Response<ApproveRejectResponse>
     
-    @PATCH("restaurants/admin/{id}/reject")
+    @PATCH("api/v1/restaurants/admin/{id}/reject")
     suspend fun rejectRestaurant(
         @Header("Authorization") token: String,
         @Path("id") restaurantId: String,
         @Body request: RejectRequest
-    ): ApproveRejectResponse
+    ): Response<ApproveRejectResponse>
 }

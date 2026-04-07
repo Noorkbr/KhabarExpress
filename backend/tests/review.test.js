@@ -180,12 +180,12 @@ const mockReview = {
   isPublished: true,
 };
 
-// Mock order data (uses field names the controller accesses)
+// Mock order data (uses correct field names matching Order model)
 const mockOrder = {
   _id: '507f1f77bcf86cd799439055',
-  userId: '507f1f77bcf86cd799439011',
-  restaurantId: '507f1f77bcf86cd799439022',
-  riderId: '507f1f77bcf86cd799439077',
+  user: '507f1f77bcf86cd799439011',
+  restaurant: '507f1f77bcf86cd799439022',
+  rider: '507f1f77bcf86cd799439077',
   status: 'delivered',
   orderNumber: 'KE-0001',
 };
@@ -498,7 +498,7 @@ describe('Review Endpoints', () => {
       });
       Restaurant.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439022',
-        ownerId: { toString: () => '507f1f77bcf86cd799439033' },
+        owner: { toString: () => '507f1f77bcf86cd799439033' },
         name: 'Test Restaurant',
       });
 

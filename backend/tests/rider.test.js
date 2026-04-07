@@ -94,9 +94,9 @@ process.env.REFRESH_TOKEN_SECRET = 'test-refresh-token-secret-key-minimum-32-cha
 process.env.JWT_EXPIRES_IN = '15m';
 process.env.REFRESH_TOKEN_EXPIRES_IN = '7d';
 
-// Helper: generate a rider user JWT token
-const generateRiderToken = (userId = '507f1f77bcf86cd799439011') => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+// Helper: generate a rider JWT token (riderAuth expects riderId in JWT)
+const generateRiderToken = (riderId = '507f1f77bcf86cd799439044') => {
+  return jwt.sign({ riderId }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
 
 // Helper: generate an admin JWT token
@@ -104,7 +104,7 @@ const generateAdminToken = (userId = '507f1f77bcf86cd799439033') => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
 
-// Helper: generate a regular customer JWT token
+// Helper: generate a regular customer JWT token (no riderId → riderAuth rejects)
 const generateUserToken = (userId = '507f1f77bcf86cd799439022') => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
 };
@@ -286,7 +286,6 @@ describe('Rider Endpoints', () => {
   describe('GET /api/v1/riders/profile', () => {
     it('should return rider profile', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findById.mockResolvedValue(mockRider);
 
       const res = await request(app)
@@ -300,7 +299,6 @@ describe('Rider Endpoints', () => {
 
     it('should return 404 when rider not found', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findById.mockResolvedValue(null);
 
       const res = await request(app)
@@ -316,7 +314,6 @@ describe('Rider Endpoints', () => {
   describe('PUT /api/v1/riders/profile', () => {
     it('should update rider profile with allowed fields', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findByIdAndUpdate.mockResolvedValue({
         ...mockRider,
         name: 'Updated Rider',
@@ -339,7 +336,6 @@ describe('Rider Endpoints', () => {
   describe('PATCH /api/v1/riders/status', () => {
     it('should update rider status to available', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findByIdAndUpdate.mockResolvedValue({
         ...mockRider,
         _id: mockRider._id,
@@ -359,7 +355,6 @@ describe('Rider Endpoints', () => {
 
     it('should reject invalid status values', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
 
       const res = await request(app)
         .patch('/api/v1/riders/status')
@@ -375,7 +370,6 @@ describe('Rider Endpoints', () => {
   describe('PATCH /api/v1/riders/location', () => {
     it('should update rider location', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findByIdAndUpdate.mockResolvedValue(mockRider);
       Order.findOne.mockResolvedValue(null);
 
@@ -391,7 +385,6 @@ describe('Rider Endpoints', () => {
 
     it('should reject location update without coordinates', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
 
       const res = await request(app)
         .patch('/api/v1/riders/location')
@@ -409,7 +402,6 @@ describe('Rider Endpoints', () => {
   describe('GET /api/v1/riders/available-orders', () => {
     it('should return available orders for an available rider', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findById.mockResolvedValue({ ...mockRider, status: 'available' });
       Order.find.mockReturnValue(chainableQuery([
         { _id: 'order1', status: 'ready', restaurantId: 'rest1' },
@@ -427,7 +419,6 @@ describe('Rider Endpoints', () => {
 
     it('should reject if rider is not in available status', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findById.mockResolvedValue({ ...mockRider, status: 'offline' });
 
       const res = await request(app)
@@ -443,11 +434,10 @@ describe('Rider Endpoints', () => {
   describe('POST /api/v1/riders/orders/:orderId/accept', () => {
     it('should accept an available order', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       const mockOrder = {
         _id: '507f1f77bcf86cd799439066',
         status: 'ready',
-        riderId: null,
+        rider: null,
         save: jest.fn().mockResolvedValue(true),
       };
       Order.findById.mockResolvedValue(mockOrder);
@@ -464,7 +454,6 @@ describe('Rider Endpoints', () => {
 
     it('should return 404 for non-existent order', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Order.findById.mockResolvedValue(null);
 
       const res = await request(app)
@@ -478,11 +467,10 @@ describe('Rider Endpoints', () => {
 
     it('should reject accepting an already assigned order', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Order.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439066',
         status: 'ready',
-        riderId: '507f1f77bcf86cd799439099',
+        rider: '507f1f77bcf86cd799439099',
       });
 
       const res = await request(app)
@@ -498,11 +486,10 @@ describe('Rider Endpoints', () => {
   describe('PATCH /api/v1/riders/orders/:orderId/status', () => {
     it('should update order status to delivered', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       const mockOrder = {
         _id: '507f1f77bcf86cd799439066',
         status: 'picked_up',
-        riderId: { toString: () => mockRiderUser.riderId },
+        rider: { toString: () => '507f1f77bcf86cd799439044' },
         save: jest.fn().mockResolvedValue(true),
       };
       Order.findById.mockResolvedValue(mockOrder);
@@ -520,11 +507,10 @@ describe('Rider Endpoints', () => {
 
     it('should reject invalid order status', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       const mockOrder = {
         _id: '507f1f77bcf86cd799439066',
         status: 'picked_up',
-        riderId: { toString: () => mockRiderUser.riderId },
+        rider: { toString: () => '507f1f77bcf86cd799439044' },
         save: jest.fn().mockResolvedValue(true),
       };
       Order.findById.mockResolvedValue(mockOrder);
@@ -541,11 +527,10 @@ describe('Rider Endpoints', () => {
 
     it('should reject status update from unauthorized rider', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Order.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439066',
         status: 'picked_up',
-        riderId: { toString: () => '507f1f77bcf86cd799439099' },
+        rider: { toString: () => '507f1f77bcf86cd799439099' },
       });
 
       const res = await request(app)
@@ -564,7 +549,6 @@ describe('Rider Endpoints', () => {
   describe('GET /api/v1/riders/earnings', () => {
     it('should return rider earnings summary', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Order.find.mockReturnValue(chainableQuery([
         { deliveryFee: 5000 },
         { deliveryFee: 6000 },
@@ -586,7 +570,6 @@ describe('Rider Endpoints', () => {
   describe('GET /api/v1/riders/delivery-history', () => {
     it('should return delivery history with pagination', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Order.find.mockReturnValue(chainableQuery([
         { _id: 'order1', status: 'delivered', deliveredAt: new Date() },
       ]));
@@ -608,7 +591,6 @@ describe('Rider Endpoints', () => {
   describe('GET /api/v1/riders/stats', () => {
     it('should return rider stats including today totals', async () => {
       const token = generateRiderToken();
-      User.findById.mockResolvedValue(mockRiderUser);
       Rider.findById.mockResolvedValue(mockRider);
       Order.countDocuments.mockResolvedValue(5);
       Order.aggregate.mockResolvedValue([{ _id: null, total: 25000 }]);
@@ -627,12 +609,11 @@ describe('Rider Endpoints', () => {
     });
   });
 
-  // ─── Admin Operations (via /api/v1/riders/) ───────────────────────
-  // Note: These admin routes are defined after router.use(authorize('rider'))
-  // in riderRoutes.js, so admin-role users are blocked by the rider middleware.
+  // ─── Admin Operations (via /api/v1/riders/admin/) ──────────────────
+  // Admin routes are now defined before riderAuth middleware, using adminAuth.
 
   describe('Admin rider management', () => {
-    it('should reject admin user on GET /api/v1/riders due to rider middleware', async () => {
+    it('should allow admin to get all riders', async () => {
       const token = generateAdminToken();
       User.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439033',
@@ -640,16 +621,20 @@ describe('Rider Endpoints', () => {
         phone: '+8801700000000',
         name: 'Admin',
       });
+      Rider.find.mockReturnValue(chainableQuery([mockRider]));
+      Rider.countDocuments.mockResolvedValue(1);
 
       const res = await request(app)
-        .get('/api/v1/riders')
+        .get('/api/v1/riders/admin/all')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.success).toBe(false);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('riders');
+      expect(res.body.data).toHaveProperty('pagination');
     });
 
-    it('should reject admin approve request due to rider middleware', async () => {
+    it('should allow admin to approve a rider', async () => {
       const token = generateAdminToken();
       User.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439033',
@@ -657,16 +642,18 @@ describe('Rider Endpoints', () => {
         phone: '+8801700000000',
         name: 'Admin',
       });
+      Rider.findByIdAndUpdate.mockResolvedValue({ ...mockRider, isApproved: true });
 
       const res = await request(app)
-        .patch('/api/v1/riders/507f1f77bcf86cd799439044/approve')
+        .patch('/api/v1/riders/admin/507f1f77bcf86cd799439044/approve')
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.statusCode).toBe(403);
-      expect(res.body.success).toBe(false);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Rider approved successfully');
     });
 
-    it('should reject admin suspend request due to rider middleware', async () => {
+    it('should allow admin to suspend a rider', async () => {
       const token = generateAdminToken();
       User.findById.mockResolvedValue({
         _id: '507f1f77bcf86cd799439033',
@@ -674,13 +661,34 @@ describe('Rider Endpoints', () => {
         phone: '+8801700000000',
         name: 'Admin',
       });
+      Rider.findByIdAndUpdate.mockResolvedValue({
+        ...mockRider,
+        isApproved: false,
+        status: 'offline',
+        suspensionReason: 'Policy violation',
+      });
 
       const res = await request(app)
-        .patch('/api/v1/riders/507f1f77bcf86cd799439044/suspend')
+        .patch('/api/v1/riders/admin/507f1f77bcf86cd799439044/suspend')
         .set('Authorization', `Bearer ${token}`)
         .send({ reason: 'Policy violation' });
 
-      expect(res.statusCode).toBe(403);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.message).toBe('Rider suspended successfully');
+    });
+
+    it('should reject non-admin users from admin routes', async () => {
+      const token = generateRiderToken();
+      // riderAuth token has riderId but no userId → auth middleware can't find a User
+      User.findById.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/v1/riders/admin/all')
+        .set('Authorization', `Bearer ${token}`);
+
+      // adminAuth → auth finds no user → 401
+      expect(res.statusCode).toBeGreaterThanOrEqual(401);
       expect(res.body.success).toBe(false);
     });
   });
