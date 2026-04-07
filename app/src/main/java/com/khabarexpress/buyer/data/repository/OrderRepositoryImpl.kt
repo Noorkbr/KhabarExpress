@@ -1,5 +1,6 @@
 package com.khabarexpress.buyer.data.repository
 
+import com.khabarexpress.buyer.data.local.dao.CartDao
 import com.khabarexpress.buyer.data.local.preferences.AppPreferences
 import com.khabarexpress.buyer.data.mappers.toDomainModel
 import com.khabarexpress.buyer.data.remote.api.OrderApi
@@ -8,6 +9,7 @@ import com.khabarexpress.buyer.domain.model.*
 import com.khabarexpress.buyer.domain.repository.OrderRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,7 +22,8 @@ import javax.inject.Singleton
 @Singleton
 class OrderRepositoryImpl @Inject constructor(
     private val orderApi: OrderApi,
-    private val appPreferences: AppPreferences
+    private val appPreferences: AppPreferences,
+    private val cartDao: CartDao
 ) : OrderRepository {
 
     /**
@@ -36,9 +39,31 @@ class OrderRepositoryImpl @Inject constructor(
             val token = appPreferences.getAuthTokenSync()
                 ?: return Result.failure(Exception("Not authenticated"))
             
-            // TODO: Get cart items to create order items
-            // For now, using empty list as placeholder
-            val orderItems = emptyList<OrderItemRequest>()
+            // Build order items from current cart
+            val cartItems = cartDao.getAllCartItems().first()
+            if (cartItems.isEmpty()) {
+                return Result.failure(Exception("Cart is empty"))
+            }
+            
+            val orderItems = cartItems.map { entity ->
+                // Parse customization IDs from the stored JSON
+                val customizationIds = try {
+                    if (entity.customizations.isNullOrEmpty()) {
+                        emptyList()
+                    } else {
+                        kotlinx.serialization.json.Json.decodeFromString<List<com.khabarexpress.buyer.domain.model.SelectedCustomization>>(entity.customizations)
+                            .map { it.choice.id }
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+                
+                OrderItemRequest(
+                    menuItemId = entity.menuItemId,
+                    quantity = entity.quantity,
+                    customizations = customizationIds
+                )
+            }
             
             val request = PlaceOrderRequest(
                 restaurantId = restaurantId,

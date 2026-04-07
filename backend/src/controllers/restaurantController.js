@@ -1,6 +1,9 @@
 const Restaurant = require('../models/Restaurant');
 const MenuItem = require('../models/MenuItem');
 
+/** Escape regex-special characters to prevent ReDoS */
+const escapeRegex = (s) => String(s).replace(/[-$()*+.?[\\\]^{|}]/g, '\\$&');
+
 // Get restaurants (with filters and pagination)
 exports.getRestaurants = async (req, res, next) => {
   try {
@@ -20,10 +23,11 @@ exports.getRestaurants = async (req, res, next) => {
 
     // Search by name or cuisine
     if (search) {
+      const escaped = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { nameBn: { $regex: search, $options: 'i' } },
-        { cuisines: { $regex: search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { nameBn: { $regex: escaped, $options: 'i' } },
+        { cuisines: { $regex: escaped, $options: 'i' } },
       ];
     }
 
@@ -154,13 +158,14 @@ exports.searchAll = async (req, res, next) => {
     }
 
     // Search restaurants
+    const escaped = escapeRegex(searchQuery);
     const restaurants = await Restaurant.find({
       isActive: true,
       approvalStatus: 'approved',
       $or: [
-        { name: { $regex: searchQuery, $options: 'i' } },
-        { nameBn: { $regex: searchQuery, $options: 'i' } },
-        { cuisines: { $regex: searchQuery, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { nameBn: { $regex: escaped, $options: 'i' } },
+        { cuisines: { $regex: escaped, $options: 'i' } },
       ],
     }).limit(10);
 
@@ -168,10 +173,10 @@ exports.searchAll = async (req, res, next) => {
     const menuItems = await MenuItem.find({
       isAvailable: true,
       $or: [
-        { name: { $regex: searchQuery, $options: 'i' } },
-        { nameBn: { $regex: searchQuery, $options: 'i' } },
-        { description: { $regex: searchQuery, $options: 'i' } },
-        { categoryName: { $regex: searchQuery, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { nameBn: { $regex: escaped, $options: 'i' } },
+        { description: { $regex: escaped, $options: 'i' } },
+        { categoryName: { $regex: escaped, $options: 'i' } },
       ],
     })
       .populate('restaurant', 'name logo rating')
