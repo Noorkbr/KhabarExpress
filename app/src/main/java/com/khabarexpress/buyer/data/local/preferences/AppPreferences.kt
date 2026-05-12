@@ -3,6 +3,7 @@ package com.khabarexpress.buyer.data.local.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -23,6 +24,7 @@ class AppPreferences(private val context: Context) {
         private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         private val USER_ID = stringPreferencesKey("user_id")
         private val USER_ROLE = stringPreferencesKey("user_role")
+        private val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
     
     /**
@@ -117,5 +119,21 @@ class AppPreferences(private val context: Context) {
             preferences.remove(USER_ID)
             preferences.remove(USER_ROLE)
         }
+    }
+
+    /**
+     * Save whether the user has completed onboarding
+     */
+    suspend fun saveOnboardingCompleted(completed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[ONBOARDING_COMPLETED] = completed
+        }
+    }
+
+    /**
+     * Check if the user has completed onboarding
+     */
+    suspend fun isOnboardingCompleted(): Boolean {
+        return context.dataStore.data.first()[ONBOARDING_COMPLETED] ?: false
     }
 }

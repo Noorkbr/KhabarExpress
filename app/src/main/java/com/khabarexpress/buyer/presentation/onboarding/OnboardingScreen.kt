@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khabarexpress.buyer.navigation.Screen
 import com.khabarexpress.buyer.ui.theme.Gold
@@ -39,7 +40,8 @@ data class OnboardingPage(
 
 @Composable
 fun OnboardingScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: OnboardingViewModel = hiltViewModel()
 ) {
     val pages = listOf(
         OnboardingPage(
@@ -89,6 +91,7 @@ fun OnboardingScreen(
             ) {
                 TextButton(
                     onClick = {
+                        viewModel.markOnboardingCompleted()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }
@@ -145,6 +148,7 @@ fun OnboardingScreen(
                 // Get Started button
                 Button(
                     onClick = {
+                        viewModel.markOnboardingCompleted()
                         navController.navigate(Screen.Login.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }

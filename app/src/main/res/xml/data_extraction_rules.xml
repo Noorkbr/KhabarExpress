@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Sample data extraction rules file; see: https://developer.android.com/about/versions/12/backup-restore
+   Data extraction rules — Buyer App
+   Excludes authentication tokens and sensitive preferences from cloud backup
+   and device-to-device transfers.
    Used by android:dataExtractionRules="@xml/data_extraction_rules"
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up. -->
+        <!-- Exclude DataStore prefs that contain auth tokens -->
+        <exclude
+            domain="file"
+            path="datastore/khabar_lagbe_prefs.preferences_pb" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
+        <!-- Exclude DataStore prefs that contain auth tokens -->
+        <exclude
+            domain="file"
+            path="datastore/khabar_lagbe_prefs.preferences_pb" />
     </device-transfer>
-    -->
 </data-extraction-rules>

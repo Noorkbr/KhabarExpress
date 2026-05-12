@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration — Seller App
+    Enforces HTTPS-only traffic in production (release) builds.
+    Cleartext HTTP is intentionally disabled; all API calls must use HTTPS.
+-->
+<network-security-config>
+    <!-- Production: HTTPS only -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Development convenience: allow cleartext to localhost only -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

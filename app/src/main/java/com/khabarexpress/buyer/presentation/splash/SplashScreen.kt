@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.khabarexpress.buyer.navigation.Screen
-import com.khabarexpress.buyer.presentation.auth.login.LoginViewModel
 import com.khabarexpress.buyer.ui.theme.Gold
 import com.khabarexpress.buyer.ui.theme.Navy
 import kotlinx.coroutines.delay
@@ -29,12 +28,15 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     navController: NavController,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: SplashViewModel = hiltViewModel()
 ) {
     var showLogo by remember { mutableStateOf(false) }
     var showTagline by remember { mutableStateOf(false) }
     var showPartner by remember { mutableStateOf(false) }
     var showAmbassador by remember { mutableStateOf(false) }
+    var animationComplete by remember { mutableStateOf(false) }
+
+    val destination by viewModel.destination.collectAsState()
 
     // Animate the gold accent line
     val infiniteTransition = rememberInfiniteTransition(label = "splash_glow")
@@ -48,6 +50,7 @@ fun SplashScreen(
         label = "glow"
     )
 
+    // Drive the sequential splash animation
     LaunchedEffect(Unit) {
         showLogo = true
         delay(600)
@@ -57,15 +60,22 @@ fun SplashScreen(
         delay(500)
         showAmbassador = true
         delay(1400)
+        animationComplete = true
+    }
 
-        val isAuthenticated = false // viewModel.isAuthenticated()
-        if (isAuthenticated) {
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
-            }
-        } else {
-            navController.navigate(Screen.Onboarding.route) {
-                popUpTo(Screen.Splash.route) { inclusive = true }
+    // Navigate once the animation is done AND the destination is known
+    LaunchedEffect(animationComplete, destination) {
+        if (animationComplete && destination != null) {
+            when (destination!!) {
+                SplashDestination.Home -> navController.navigate(Screen.Home.route) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+                SplashDestination.Login -> navController.navigate(Screen.Login.route) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
+                SplashDestination.Onboarding -> navController.navigate(Screen.Onboarding.route) {
+                    popUpTo(Screen.Splash.route) { inclusive = true }
+                }
             }
         }
     }
