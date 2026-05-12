@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-   Sample backup rules file; see: https://developer.android.com/guide/topics/data/autobackup
+   Backup rules — Seller App
+   Excludes authentication tokens and sensitive preferences from cloud backup.
    Used by android:fullBackupContent="@xml/backup_rules"
 -->
 <full-backup-content>
-    <!--
-    <include domain="sharedpref" path="."/>
-    <exclude domain="sharedpref" path="device.xml"/>
-    -->
+    <!-- Exclude DataStore prefs that contain auth tokens -->
+    <exclude domain="file" path="datastore/khabar_seller_prefs.preferences_pb" />
 </full-backup-content>
