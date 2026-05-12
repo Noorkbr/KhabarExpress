@@ -43,11 +43,11 @@ class SplashViewModel @Inject constructor(
 /** Possible navigation targets after the splash screen. */
 sealed class SplashDestination {
     /** User is authenticated — go straight to Home. */
-    object Home : SplashDestination()
+    data object Home : SplashDestination()
 
     /** Onboarding already seen, but not logged in — go to Login. */
-    object Login : SplashDestination()
+    data object Login : SplashDestination()
 
     /** First launch — show Onboarding. */
-    object Onboarding : SplashDestination()
+    data object Onboarding : SplashDestination()
 }
